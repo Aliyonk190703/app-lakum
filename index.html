@@ -5,10 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LAKUM - Laporan Keuangan SAK EMKM</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .currency-input { text-align: right; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { font-size: 12px; }
+            table { page-break-inside: avoid; }
+            tr { page-break-inside: avoid; }
+        }
+        .print-only { display: none; }
+        
+        /* PDF specific styles */
+        .pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        
+        .pdf-table th,
+        .pdf-table td {
+            border: 1px solid #000;
+            padding: 6px;
+            vertical-align: top;
+        }
+        
+        .pdf-header {
+            text-align: center;
+            margin-bottom: 20px;
+            page-break-after: avoid;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
@@ -38,7 +68,12 @@
     <div class="container mx-auto px-6 py-8">
         <!-- Navigation Menu -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 mb-6">Menu Utama</h2>
+            <button onclick="goHome()" class="text-xl font-semibold text-gray-800 mb-6 hover:text-blue-600 transition-colors duration-200 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                Menu Utama
+            </button>
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <button onclick="showMenu('pendapatan')" class="menu-btn bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
                     <div class="text-2xl mb-2">💰</div>
@@ -81,6 +116,27 @@
         // Data storage
         let pendapatanData = JSON.parse(localStorage.getItem('pendapatanData')) || [];
         let pengeluaranData = JSON.parse(localStorage.getItem('pengeluaranData')) || [];
+        let calkData = JSON.parse(localStorage.getItem('calkData')) || {
+            kas: 0,
+            bank: 0,
+            deposito: 0,
+            piutangUsaha: 0,
+            persediaan: 0,
+            bebanDibayarDimuka: 0,
+            asetTetap: 0,
+            penyusutan: 0,
+            utangUsaha: 0,
+            hutangBank: 0,
+            hutangLainLain: 0,
+            modal: 0,
+            labaDitahan: 0,
+            saldoLabaRugi: 0,
+            bebanPajak: 0,
+            pendapatanUsahaManual: 0,
+            pendapatanLainManual: 0,
+            pengeluaranUsahaManual: 0,
+            pengeluaranLainManual: 0
+        };
 
         function formatRupiah(amount) {
             return new Intl.NumberFormat('id-ID', {
@@ -234,6 +290,13 @@
         }
 
         function getNeracaHTML() {
+            const kasSetaraKas = calkData.kas + calkData.bank + calkData.deposito;
+            const asetTetapBersih = calkData.asetTetap - calkData.penyusutan;
+            const totalAset = kasSetaraKas + calkData.piutangUsaha + calkData.persediaan + calkData.bebanDibayarDimuka + asetTetapBersih;
+            const totalKewajiban = calkData.utangUsaha + calkData.hutangBank + calkData.hutangLainLain;
+            const totalModal = calkData.modal + calkData.labaDitahan + calkData.saldoLabaRugi;
+            const totalKewajibanModal = totalKewajiban + totalModal;
+
             return `
                 <div class="bg-white rounded-xl shadow-lg p-8">
                     <div class="flex items-center justify-between mb-6">
@@ -241,10 +304,22 @@
                             <span class="text-blue-500 mr-3">📊</span>
                             Laporan Neraca
                         </h3>
+                        <button onclick="printNeraca()" class="no-print bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zM6 9a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
+                            </svg>
+                            Print PDF
+                        </button>
                     </div>
                     
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse border border-gray-300">
+                    <div id="neraca-content" class="overflow-x-auto">
+                        <div class="print-only pdf-header">
+                            <h1 class="text-2xl font-bold">LAKUM - Laporan Keuangan UMKM</h1>
+                            <h2 class="text-xl font-semibold mt-2">LAPORAN NERACA</h2>
+                            <p class="text-sm mt-1">Per ${new Date().toLocaleDateString('id-ID')}</p>
+                        </div>
+                        
+                        <table class="w-full border-collapse border border-gray-300 pdf-table">
                             <thead>
                                 <tr class="bg-blue-50">
                                     <th class="border border-gray-300 p-3 text-left font-semibold">ASET</th>
@@ -258,48 +333,48 @@
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 pl-8">Kas</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.kas)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 pl-8">Bank</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.bank)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 pl-8">Deposito</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.deposito)}</td>
                                 </tr>
                                 <tr class="bg-gray-100">
                                     <td class="border border-gray-300 p-3 pl-8 font-medium">Jumlah Kas dan Setara Kas</td>
-                                    <td class="border border-gray-300 p-3 text-right font-medium">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right font-medium">${formatRupiah(kasSetaraKas)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3">Piutang Usaha</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.piutangUsaha)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3">Persediaan</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.persediaan)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3">Beban Dibayar Dimuka</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.bebanDibayarDimuka)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3">Aset Tetap</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.asetTetap)}</td>
                                 </tr>
                                 <tr>
-                                    <td class="border border-gray-300 p-3">Penyusutan</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3">Akumulasi Penyusutan</td>
+                                    <td class="border border-gray-300 p-3 text-right">(${formatRupiah(calkData.penyusutan)})</td>
                                 </tr>
                                 <tr class="bg-blue-100">
                                     <td class="border border-gray-300 p-3 font-bold">JUMLAH ASET</td>
-                                    <td class="border border-gray-300 p-3 text-right font-bold">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right font-bold">${formatRupiah(totalAset)}</td>
                                 </tr>
                             </tbody>
                         </table>
                         
-                        <table class="w-full border-collapse border border-gray-300 mt-6">
+                        <table class="w-full border-collapse border border-gray-300 mt-6 pdf-table">
                             <thead>
                                 <tr class="bg-red-50">
                                     <th class="border border-gray-300 p-3 text-left font-semibold">KEWAJIBAN DAN MODAL</th>
@@ -313,19 +388,19 @@
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 pl-8">Utang Usaha</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.utangUsaha)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 pl-8">Utang Bank</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.hutangBank)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 pl-8">Utang Lain-lain</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.hutangLainLain)}</td>
                                 </tr>
                                 <tr class="bg-gray-100">
                                     <td class="border border-gray-300 p-3 font-medium">JUMLAH KEWAJIBAN</td>
-                                    <td class="border border-gray-300 p-3 text-right font-medium">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right font-medium">${formatRupiah(totalKewajiban)}</td>
                                 </tr>
                                 <tr class="bg-gray-50">
                                     <td class="border border-gray-300 p-3 font-medium">MODAL</td>
@@ -333,23 +408,23 @@
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 pl-8">Modal</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.modal)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 pl-8">Laba Ditahan</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.labaDitahan)}</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 pl-8">Saldo Laba (Rugi)</td>
-                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(calkData.saldoLabaRugi)}</td>
                                 </tr>
                                 <tr class="bg-gray-100">
                                     <td class="border border-gray-300 p-3 font-medium">JUMLAH MODAL</td>
-                                    <td class="border border-gray-300 p-3 text-right font-medium">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right font-medium">${formatRupiah(totalModal)}</td>
                                 </tr>
                                 <tr class="bg-blue-100">
                                     <td class="border border-gray-300 p-3 font-bold">JUMLAH KEWAJIBAN DAN MODAL</td>
-                                    <td class="border border-gray-300 p-3 text-right font-bold">Rp 0</td>
+                                    <td class="border border-gray-300 p-3 text-right font-bold">${formatRupiah(totalKewajibanModal)}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -359,15 +434,21 @@
         }
 
         function getLabaRugiHTML() {
-            const pendapatanUsaha = pendapatanData.filter(item => item.jenis.includes('Pendapatan dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
-            const pendapatanLain = pendapatanData.filter(item => item.jenis.includes('Pendapatan selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
-            const bebanUsaha = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
-            const bebanLain = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const pendapatanUsahaAuto = pendapatanData.filter(item => item.jenis.includes('Pendapatan dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const pendapatanLainAuto = pendapatanData.filter(item => item.jenis.includes('Pendapatan selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanUsahaAuto = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanLainAuto = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            
+            // Use manual input from CaLK if available, otherwise use auto calculation
+            const pendapatanUsaha = calkData.pendapatanUsahaManual || pendapatanUsahaAuto;
+            const pendapatanLain = calkData.pendapatanLainManual || pendapatanLainAuto;
+            const bebanUsaha = calkData.pengeluaranUsahaManual || bebanUsahaAuto;
+            const bebanLain = calkData.pengeluaranLainManual || bebanLainAuto;
             
             const totalPendapatan = pendapatanUsaha + pendapatanLain;
             const totalBeban = bebanUsaha + bebanLain;
             const labaSebelumPajak = totalPendapatan - totalBeban;
-            const bebanPajak = 0; // Default 0, bisa diinput manual
+            const bebanPajak = calkData.bebanPajak;
             const labaSetelahPajak = labaSebelumPajak - bebanPajak;
 
             return `
@@ -377,10 +458,22 @@
                             <span class="text-purple-500 mr-3">📈</span>
                             Laporan Laba Rugi
                         </h3>
+                        <button onclick="printLabaRugi()" class="no-print bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zM6 9a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
+                            </svg>
+                            Print PDF
+                        </button>
                     </div>
                     
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse border border-gray-300">
+                    <div id="labarugi-content" class="overflow-x-auto">
+                        <div class="print-only pdf-header">
+                            <h1 class="text-2xl font-bold">LAKUM - Laporan Keuangan UMKM</h1>
+                            <h2 class="text-xl font-semibold mt-2">LAPORAN LABA RUGI</h2>
+                            <p class="text-sm mt-1">Untuk Periode yang Berakhir ${new Date().toLocaleDateString('id-ID')}</p>
+                        </div>
+                        
+                        <table class="w-full border-collapse border border-gray-300 pdf-table">
                             <tbody>
                                 <tr class="bg-green-50">
                                     <td class="border border-gray-300 p-3 font-semibold">PENDAPATAN</td>
@@ -441,43 +534,30 @@
                             <span class="text-gray-600 mr-3">⚙️</span>
                             Kelola Data
                         </h3>
+
                     </div>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <!-- Kelola Pendapatan -->
                         <div class="bg-green-50 rounded-lg p-6">
                             <h4 class="text-lg font-semibold text-green-800 mb-4 flex items-center">
                                 <span class="mr-2">💰</span>
                                 Kelola Data Pendapatan
                             </h4>
-                            <div class="space-y-3">
-                                ${pendapatanData.length === 0 ? 
-                                    '<p class="text-gray-500 text-center py-4">Belum ada data pendapatan</p>' :
-                                    pendapatanData.map(item => `
-                                        <div class="bg-white rounded-lg p-4 border border-green-200">
-                                            <div class="flex justify-between items-start">
-                                                <div class="flex-1">
-                                                    <div class="text-sm text-gray-600">${new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
-                                                    <div class="font-medium text-gray-800">${item.uraian}</div>
-                                                    <div class="text-sm text-green-600">${item.jenis.join(', ')}</div>
-                                                    <div class="text-lg font-semibold text-green-700">${formatRupiah(item.jumlah)}</div>
-                                                </div>
-                                                <button onclick="deletePendapatan(${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm ml-3">
-                                                    Hapus
-                                                </button>
-                                            </div>
-                                        </div>
-                                    `).join('')
-                                }
+                            <div class="space-y-3 max-h-96 overflow-y-auto">
+                                ${getPendapatanItemsList()}
                             </div>
                             ${pendapatanData.length > 0 ? `
                                 <div class="mt-4 pt-4 border-t border-green-200">
-                                    <div class="flex justify-between items-center">
+                                    <div class="flex justify-between items-center mb-4">
                                         <span class="font-medium text-green-800">Total Pendapatan:</span>
                                         <span class="text-xl font-bold text-green-700">
                                             ${formatRupiah(pendapatanData.reduce((sum, item) => sum + item.jumlah, 0))}
                                         </span>
                                     </div>
+                                    <button onclick="resetPendapatanData()" class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm transition-colors duration-200">
+                                        Reset Semua Data Pendapatan
+                                    </button>
                                 </div>
                             ` : ''}
                         </div>
@@ -488,36 +568,38 @@
                                 <span class="mr-2">💸</span>
                                 Kelola Data Pengeluaran
                             </h4>
-                            <div class="space-y-3">
-                                ${pengeluaranData.length === 0 ? 
-                                    '<p class="text-gray-500 text-center py-4">Belum ada data pengeluaran</p>' :
-                                    pengeluaranData.map(item => `
-                                        <div class="bg-white rounded-lg p-4 border border-red-200">
-                                            <div class="flex justify-between items-start">
-                                                <div class="flex-1">
-                                                    <div class="text-sm text-gray-600">${new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
-                                                    <div class="font-medium text-gray-800">${item.uraian}</div>
-                                                    <div class="text-sm text-red-600">${item.jenis.join(', ')}</div>
-                                                    <div class="text-lg font-semibold text-red-700">${formatRupiah(item.jumlah)}</div>
-                                                </div>
-                                                <button onclick="deletePengeluaran(${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm ml-3">
-                                                    Hapus
-                                                </button>
-                                            </div>
-                                        </div>
-                                    `).join('')
-                                }
+                            <div class="space-y-3 max-h-96 overflow-y-auto">
+                                ${getPengeluaranItemsList()}
                             </div>
                             ${pengeluaranData.length > 0 ? `
                                 <div class="mt-4 pt-4 border-t border-red-200">
-                                    <div class="flex justify-between items-center">
+                                    <div class="flex justify-between items-center mb-4">
                                         <span class="font-medium text-red-800">Total Pengeluaran:</span>
                                         <span class="text-xl font-bold text-red-700">
                                             ${formatRupiah(pengeluaranData.reduce((sum, item) => sum + item.jumlah, 0))}
                                         </span>
                                     </div>
+                                    <button onclick="resetPengeluaranData()" class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm transition-colors duration-200">
+                                        Reset Semua Data Pengeluaran
+                                    </button>
                                 </div>
                             ` : ''}
+                        </div>
+                        
+                        <!-- Kelola CaLK -->
+                        <div class="bg-orange-50 rounded-lg p-6">
+                            <h4 class="text-lg font-semibold text-orange-800 mb-4 flex items-center">
+                                <span class="mr-2">📋</span>
+                                Kelola Data CaLK
+                            </h4>
+                            <div class="space-y-3 max-h-96 overflow-y-auto">
+                                ${getCalkItemsList()}
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-orange-200">
+                                <button onclick="resetCalkData()" class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm transition-colors duration-200">
+                                    Reset Semua Data CaLK
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -553,6 +635,11 @@
         }
 
         function getCalkHTML() {
+            const pendapatanUsaha = pendapatanData.filter(item => item.jenis.includes('Pendapatan dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const pendapatanLain = pendapatanData.filter(item => item.jenis.includes('Pendapatan selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanUsaha = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanLain = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+
             return `
                 <div class="bg-white rounded-xl shadow-lg p-8">
                     <div class="flex items-center justify-between mb-6">
@@ -560,10 +647,28 @@
                             <span class="text-orange-500 mr-3">📋</span>
                             Catatan atas Laporan Keuangan (CaLK)
                         </h3>
+                        <button onclick="printCalk()" class="no-print bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zM6 9a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
+                            </svg>
+                            Print PDF
+                        </button>
                     </div>
                     
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse border border-gray-300 text-sm">
+                    <div id="calk-content" class="overflow-x-auto">
+                        <div class="print-only pdf-header">
+                            <h1 class="text-2xl font-bold">LAKUM - Laporan Keuangan UMKM</h1>
+                            <h2 class="text-xl font-semibold mt-2">CATATAN ATAS LAPORAN KEUANGAN (CaLK)</h2>
+                            <p class="text-sm mt-1">Per ${new Date().toLocaleDateString('id-ID')}</p>
+                        </div>
+                        
+                        <form onsubmit="saveCalkData(event)" class="mb-6 no-print">
+                            <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200">
+                                Simpan Data CaLK
+                            </button>
+                        </form>
+                        
+                        <table class="w-full border-collapse border border-gray-300 text-sm pdf-table">
                             <thead>
                                 <tr class="bg-orange-50">
                                     <th class="border border-gray-300 p-3 text-center font-semibold w-12">NO</th>
@@ -576,103 +681,172 @@
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">1</td>
                                     <td class="border border-gray-300 p-3">Kas</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="kas" value="${formatRupiah(calkData.kas)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.kas)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Sisa uang tunai pada tanggal 31 desember yang tidak disimpan di Bank</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">2</td>
                                     <td class="border border-gray-300 p-3">Bank</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="bank" value="${formatRupiah(calkData.bank)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.bank)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Uang hasil usaha yang disimpan di Bank, saldo akhir per tgl 31 desember</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">3</td>
                                     <td class="border border-gray-300 p-3">Deposito</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="deposito" value="${formatRupiah(calkData.deposito)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.deposito)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">(JIKA ADA) Uang dari usaha yang didepositokan</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">4</td>
                                     <td class="border border-gray-300 p-3">Piutang Usaha</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="piutangUsaha" value="${formatRupiah(calkData.piutangUsaha)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.piutangUsaha)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Pihak lain yang berhutang dan belum dibayarkan</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">5</td>
                                     <td class="border border-gray-300 p-3">Persediaan</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="persediaan" value="${formatRupiah(calkData.persediaan)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.persediaan)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Sisa stock barang yang belum terjual dirupiahkan</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">6</td>
                                     <td class="border border-gray-300 p-3">Beban Dibayar Dimuka</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="bebanDibayarDimuka" value="${formatRupiah(calkData.bebanDibayarDimuka)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.bebanDibayarDimuka)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">DP atau Biaya yang dikeluarkan terlebih dahulu baru digunakan - contoh: Sewa kantor, Sewa alat, DP Barang, Biaya Iklan dll</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">7</td>
                                     <td class="border border-gray-300 p-3">Aset Tetap</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="asetTetap" value="${formatRupiah(calkData.asetTetap)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.asetTetap)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Total Harga Beli Aset yang dimiliki UMKM secara keseluruhan (contoh: peralatan dagang, alat elektronik untuk dagang dsb)</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">8</td>
                                     <td class="border border-gray-300 p-3">Penyusutan</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="penyusutan" value="${formatRupiah(calkData.penyusutan)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.penyusutan)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Penyusutan Aset yang dimiliki dihitung dengan metode garis lurus</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">9</td>
                                     <td class="border border-gray-300 p-3">Utang Usaha</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="utangUsaha" value="${formatRupiah(calkData.utangUsaha)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.utangUsaha)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Hutang pembelian barang untuk usaha</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">10</td>
                                     <td class="border border-gray-300 p-3">Hutang Bank</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="hutangBank" value="${formatRupiah(calkData.hutangBank)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.hutangBank)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">(JIKA ADA). Hutang / pinjaman kepada Bank untuk usaha</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">11</td>
                                     <td class="border border-gray-300 p-3">Hutang Lain-Lain</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="hutangLainLain" value="${formatRupiah(calkData.hutangLainLain)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.hutangLainLain)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Hutang/Pinjaman kepada selain Bank (contoh: ambil barang di distributor tapi belum dibayar, pinjam ke tetangga dsb)</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">12</td>
                                     <td class="border border-gray-300 p-3">Modal</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="modal" value="${formatRupiah(calkData.modal)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.modal)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Modal awal pada saat bikin UMKM</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">13</td>
                                     <td class="border border-gray-300 p-3">Laba Ditahan</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="labaDitahan" value="${formatRupiah(calkData.labaDitahan)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.labaDitahan)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Keuntungan yang akan diputar kembali untuk membesarkan usaha diakumulasi dan diambil dari laba bersih tiap tahunnya</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">14</td>
                                     <td class="border border-gray-300 p-3">Saldo Laba / Rugi</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="saldoLabaRugi" value="${formatRupiah(calkData.saldoLabaRugi)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.saldoLabaRugi)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Keuntungan / Kerugian pada akhir tahun</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">15</td>
-                                    <td class="border border-gray-300 p-3">Pendapatan dari usaha<br>Pendapatan selain dari usaha</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -<br>Rp -</td>
+                                    <td class="border border-gray-300 p-3">Pendapatan dari usaha</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="pendapatanUsahaManual" value="${formatRupiah(calkData.pendapatanUsahaManual || pendapatanUsaha)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.pendapatanUsahaManual || pendapatanUsaha)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3"></td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">16</td>
-                                    <td class="border border-gray-300 p-3">Pengeluaran dari usaha<br>Pengeluaran selain dari usaha</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -<br>Rp -</td>
+                                    <td class="border border-gray-300 p-3">Pendapatan selain dari usaha</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="pendapatanLainManual" value="${formatRupiah(calkData.pendapatanLainManual || pendapatanLain)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.pendapatanLainManual || pendapatanLain)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3"></td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center">17</td>
+                                    <td class="border border-gray-300 p-3">Pengeluaran dari usaha</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="pengeluaranUsahaManual" value="${formatRupiah(calkData.pengeluaranUsahaManual || bebanUsaha)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.pengeluaranUsahaManual || bebanUsaha)}</span>
+                                    </td>
+                                    <td class="border border-gray-300 p-3"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">18</td>
+                                    <td class="border border-gray-300 p-3">Pengeluaran selain dari usaha</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="pengeluaranLainManual" value="${formatRupiah(calkData.pengeluaranLainManual || bebanLain)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.pengeluaranLainManual || bebanLain)}</span>
+                                    </td>
+                                    <td class="border border-gray-300 p-3"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">19</td>
                                     <td class="border border-gray-300 p-3">Beban Pajak</td>
-                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <input type="text" name="bebanPajak" value="${formatRupiah(calkData.bebanPajak)}" class="w-full text-center border-0 bg-transparent currency-input no-print" oninput="formatCurrencyInput(this)">
+                                        <span class="print-only">${formatRupiah(calkData.bebanPajak)}</span>
+                                    </td>
                                     <td class="border border-gray-300 p-3">Pajak yang harus dibayarkan</td>
                                 </tr>
                             </tbody>
@@ -792,7 +966,6 @@
                                 <th class="border border-gray-300 p-3 text-left">Jenis</th>
                                 <th class="border border-gray-300 p-3 text-left">Uraian</th>
                                 <th class="border border-gray-300 p-3 text-right">Jumlah</th>
-                                <th class="border border-gray-300 p-3 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -802,11 +975,6 @@
                                     <td class="border border-gray-300 p-3">${item.jenis.join(', ')}</td>
                                     <td class="border border-gray-300 p-3">${item.uraian}</td>
                                     <td class="border border-gray-300 p-3 text-right">${formatRupiah(item.jumlah)}</td>
-                                    <td class="border border-gray-300 p-3 text-center">
-                                        <button onclick="deletePengeluaran(${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
-                                            Hapus
-                                        </button>
-                                    </td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -891,6 +1059,984 @@
             }
         }
 
+        function saveCalkData(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            // Get all input elements in the form's parent container
+            const inputs = form.parentElement.querySelectorAll('input[name]');
+            
+            inputs.forEach(input => {
+                const fieldName = input.name;
+                const value = parseRupiah(input.value);
+                calkData[fieldName] = value;
+            });
+            
+            localStorage.setItem('calkData', JSON.stringify(calkData));
+            showSuccessMessage('Data CaLK berhasil disimpan!');
+        }
+
+        function printNeraca() {
+            const element = document.getElementById('neraca-content');
+            if (!element) {
+                alert('Konten neraca tidak ditemukan!');
+                return;
+            }
+            
+            // Create a temporary container for PDF generation
+            const tempContainer = document.createElement('div');
+            tempContainer.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 210mm;
+                min-height: 297mm;
+                background: white;
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                line-height: 1.4;
+                color: black;
+                padding: 20px;
+                box-sizing: border-box;
+                z-index: 9999;
+                visibility: hidden;
+            `;
+            
+            // Add header
+            const header = document.createElement('div');
+            header.innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="font-size: 18px; font-weight: bold; margin: 0 0 10px 0;">LAKUM - Laporan Keuangan UMKM</h1>
+                    <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 5px 0;">LAPORAN NERACA</h2>
+                    <p style="font-size: 12px; margin: 0;">Per ${new Date().toLocaleDateString('id-ID')}</p>
+                </div>
+            `;
+            
+            // Calculate values
+            const kasSetaraKas = calkData.kas + calkData.bank + calkData.deposito;
+            const asetTetapBersih = calkData.asetTetap - calkData.penyusutan;
+            const totalAset = kasSetaraKas + calkData.piutangUsaha + calkData.persediaan + calkData.bebanDibayarDimuka + asetTetapBersih;
+            const totalKewajiban = calkData.utangUsaha + calkData.hutangBank + calkData.hutangLainLain;
+            const totalModal = calkData.modal + calkData.labaDitahan + calkData.saldoLabaRugi;
+            const totalKewajibanModal = totalKewajiban + totalModal;
+            
+            // Create table content
+            const tableContent = document.createElement('div');
+            tableContent.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px;">
+                    <thead>
+                        <tr style="background-color: #f0f8ff;">
+                            <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold;">ASET</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">JUMLAH</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background-color: #f8f9fa;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Kas dan Setara Kas</td>
+                            <td style="border: 1px solid #000; padding: 8px;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Kas</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.kas)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Bank</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.bank)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Deposito</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.deposito)}</td>
+                        </tr>
+                        <tr style="background-color: #f8f9fa;">
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px; font-weight: bold;">Jumlah Kas dan Setara Kas</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(kasSetaraKas)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px;">Piutang Usaha</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.piutangUsaha)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px;">Persediaan</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.persediaan)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px;">Beban Dibayar Dimuka</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.bebanDibayarDimuka)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px;">Aset Tetap</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.asetTetap)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px;">Akumulasi Penyusutan</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">(${formatRupiah(calkData.penyusutan)})</td>
+                        </tr>
+                        <tr style="background-color: #e6f3ff; font-weight: bold;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">JUMLAH ASET</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(totalAset)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px;">
+                    <thead>
+                        <tr style="background-color: #ffe6e6;">
+                            <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold;">KEWAJIBAN DAN MODAL</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">JUMLAH</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background-color: #f8f9fa;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">KEWAJIBAN</td>
+                            <td style="border: 1px solid #000; padding: 8px;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Utang Usaha</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.utangUsaha)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Utang Bank</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.hutangBank)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Utang Lain-lain</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.hutangLainLain)}</td>
+                        </tr>
+                        <tr style="background-color: #f8f9fa;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">JUMLAH KEWAJIBAN</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(totalKewajiban)}</td>
+                        </tr>
+                        <tr style="background-color: #f8f9fa;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">MODAL</td>
+                            <td style="border: 1px solid #000; padding: 8px;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Modal</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.modal)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Laba Ditahan</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.labaDitahan)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Saldo Laba (Rugi)</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(calkData.saldoLabaRugi)}</td>
+                        </tr>
+                        <tr style="background-color: #f8f9fa;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">JUMLAH MODAL</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(totalModal)}</td>
+                        </tr>
+                        <tr style="background-color: #e6f3ff; font-weight: bold;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">JUMLAH KEWAJIBAN DAN MODAL</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(totalKewajibanModal)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            
+            tempContainer.appendChild(header);
+            tempContainer.appendChild(tableContent);
+            document.body.appendChild(tempContainer);
+            
+            // Generate PDF
+            const opt = {
+                margin: 10,
+                filename: 'Laporan_Neraca.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait'
+                }
+            };
+            
+            html2pdf().set(opt).from(tempContainer).save().finally(() => {
+                document.body.removeChild(tempContainer);
+            });
+        }
+
+        function printLabaRugi() {
+            const element = document.getElementById('labarugi-content');
+            if (!element) {
+                alert('Konten laba rugi tidak ditemukan!');
+                return;
+            }
+            
+            // Create a temporary container for PDF generation
+            const tempContainer = document.createElement('div');
+            tempContainer.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 210mm;
+                min-height: 297mm;
+                background: white;
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                line-height: 1.4;
+                color: black;
+                padding: 20px;
+                box-sizing: border-box;
+                z-index: 9999;
+                visibility: hidden;
+            `;
+            
+            // Add header
+            const header = document.createElement('div');
+            header.innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="font-size: 18px; font-weight: bold; margin: 0 0 10px 0;">LAKUM - Laporan Keuangan UMKM</h1>
+                    <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 5px 0;">LAPORAN LABA RUGI</h2>
+                    <p style="font-size: 12px; margin: 0;">Untuk Periode yang Berakhir ${new Date().toLocaleDateString('id-ID')}</p>
+                </div>
+            `;
+            
+            // Calculate values
+            const pendapatanUsahaAuto = pendapatanData.filter(item => item.jenis.includes('Pendapatan dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const pendapatanLainAuto = pendapatanData.filter(item => item.jenis.includes('Pendapatan selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanUsahaAuto = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanLainAuto = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            
+            const pendapatanUsaha = calkData.pendapatanUsahaManual || pendapatanUsahaAuto;
+            const pendapatanLain = calkData.pendapatanLainManual || pendapatanLainAuto;
+            const bebanUsaha = calkData.pengeluaranUsahaManual || bebanUsahaAuto;
+            const bebanLain = calkData.pengeluaranLainManual || bebanLainAuto;
+            
+            const totalPendapatan = pendapatanUsaha + pendapatanLain;
+            const totalBeban = bebanUsaha + bebanLain;
+            const labaSebelumPajak = totalPendapatan - totalBeban;
+            const bebanPajak = calkData.bebanPajak;
+            const labaSetelahPajak = labaSebelumPajak - bebanPajak;
+            
+            // Create table content
+            const tableContent = document.createElement('div');
+            tableContent.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px;">
+                    <tbody>
+                        <tr style="background-color: #e6ffe6;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">PENDAPATAN</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">JUMLAH</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Pendapatan Usaha</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(pendapatanUsaha)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Pendapatan Lain-lain</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(pendapatanLain)}</td>
+                        </tr>
+                        <tr style="background-color: #ccffcc;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Jumlah Pendapatan</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(totalPendapatan)}</td>
+                        </tr>
+                        <tr style="background-color: #ffe6e6;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">BEBAN</td>
+                            <td style="border: 1px solid #000; padding: 8px;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Beban Usaha</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(bebanUsaha)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Beban Lain-lain</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(bebanLain)}</td>
+                        </tr>
+                        <tr style="background-color: #ffcccc;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Jumlah Beban</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(totalBeban)}</td>
+                        </tr>
+                        <tr style="background-color: #fff2cc;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">Laba (Rugi) Sebelum Pajak</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(labaSebelumPajak)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; padding-left: 24px;">Beban Pajak</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${formatRupiah(bebanPajak)}</td>
+                        </tr>
+                        <tr style="background-color: #e6f3ff; font-weight: bold;">
+                            <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">LABA (RUGI) SETELAH PAJAK</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(labaSetelahPajak)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            
+            tempContainer.appendChild(header);
+            tempContainer.appendChild(tableContent);
+            document.body.appendChild(tempContainer);
+            
+            // Generate PDF
+            const opt = {
+                margin: 10,
+                filename: 'Laporan_Laba_Rugi.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait'
+                }
+            };
+            
+            html2pdf().set(opt).from(tempContainer).save().finally(() => {
+                document.body.removeChild(tempContainer);
+            });
+        }
+
+        function printCalk() {
+            const element = document.getElementById('calk-content');
+            if (!element) {
+                alert('Konten CaLK tidak ditemukan!');
+                return;
+            }
+            
+            // Create a temporary container for PDF generation
+            const tempContainer = document.createElement('div');
+            tempContainer.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 210mm;
+                min-height: 297mm;
+                background: white;
+                font-family: Arial, sans-serif;
+                font-size: 10px;
+                line-height: 1.3;
+                color: black;
+                padding: 15px;
+                box-sizing: border-box;
+                z-index: 9999;
+                visibility: hidden;
+            `;
+            
+            // Add header
+            const header = document.createElement('div');
+            header.innerHTML = `
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <h1 style="font-size: 16px; font-weight: bold; margin: 0 0 8px 0;">LAKUM - Laporan Keuangan UMKM</h1>
+                    <h2 style="font-size: 14px; font-weight: bold; margin: 0 0 5px 0;">CATATAN ATAS LAPORAN KEUANGAN (CaLK)</h2>
+                    <p style="font-size: 10px; margin: 0;">Per ${new Date().toLocaleDateString('id-ID')}</p>
+                </div>
+            `;
+            
+            // Create table content with all CaLK data
+            const tableContent = document.createElement('div');
+            tableContent.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+                    <thead>
+                        <tr style="background-color: #fff2e6;">
+                            <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; width: 8%;">NO</th>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left; font-weight: bold; width: 25%;">URAIAN</th>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; width: 20%;">JUMLAH</th>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left; font-weight: bold; width: 47%;">KETERANGAN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">1</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Kas</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.kas)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Sisa uang tunai pada tanggal 31 desember yang tidak disimpan di Bank</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">2</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Bank</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.bank)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Uang hasil usaha yang disimpan di Bank, saldo akhir per tgl 31 desember</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">3</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Deposito</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.deposito)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">(JIKA ADA) Uang dari usaha yang didepositokan</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">4</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Piutang Usaha</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.piutangUsaha)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Pihak lain yang berhutang dan belum dibayarkan</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">5</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Persediaan</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.persediaan)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Sisa stock barang yang belum terjual dirupiahkan</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">6</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Beban Dibayar Dimuka</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.bebanDibayarDimuka)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">DP atau Biaya yang dikeluarkan terlebih dahulu baru digunakan - contoh: Sewa kantor, Sewa alat, DP Barang, Biaya Iklan dll</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">7</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Aset Tetap</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.asetTetap)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Total Harga Beli Aset yang dimiliki UMKM secara keseluruhan (contoh: peralatan dagang, alat elektronik untuk dagang dsb)</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">8</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Penyusutan</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.penyusutan)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Penyusutan Aset yang dimiliki dihitung dengan metode garis lurus</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">9</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Utang Usaha</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.utangUsaha)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Hutang pembelian barang untuk usaha</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">10</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Hutang Bank</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.hutangBank)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">(JIKA ADA). Hutang / pinjaman kepada Bank untuk usaha</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">11</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Hutang Lain-Lain</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.hutangLainLain)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Hutang/Pinjaman kepada selain Bank (contoh: ambil barang di distributor tapi belum dibayar, pinjam ke tetangga dsb)</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">12</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Modal</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.modal)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Modal awal pada saat bikin UMKM</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">13</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Laba Ditahan</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.labaDitahan)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Keuntungan yang akan diputar kembali untuk membesarkan usaha diakumulasi dan diambil dari laba bersih tiap tahunnya</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">14</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Saldo Laba / Rugi</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.saldoLabaRugi)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Keuntungan / Kerugian pada akhir tahun</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">15</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Pendapatan dari usaha</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.pendapatanUsahaManual || pendapatanData.filter(item => item.jenis.includes('Pendapatan dari usaha')).reduce((sum, item) => sum + item.jumlah, 0))}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">16</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Pendapatan selain dari usaha</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.pendapatanLainManual || pendapatanData.filter(item => item.jenis.includes('Pendapatan selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0))}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">17</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Pengeluaran dari usaha</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.pengeluaranUsahaManual || pengeluaranData.filter(item => item.jenis.includes('Pengeluaran dari usaha')).reduce((sum, item) => sum + item.jumlah, 0))}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">18</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Pengeluaran selain dari usaha</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.pengeluaranLainManual || pengeluaranData.filter(item => item.jenis.includes('Pengeluaran selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0))}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">19</td>
+                            <td style="border: 1px solid #000; padding: 6px;">Beban Pajak</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${formatRupiah(calkData.bebanPajak)}</td>
+                            <td style="border: 1px solid #000; padding: 6px; font-size: 8px;">Pajak yang harus dibayarkan</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            
+            tempContainer.appendChild(header);
+            tempContainer.appendChild(tableContent);
+            document.body.appendChild(tempContainer);
+            
+            // Generate PDF
+            const opt = {
+                margin: 8,
+                filename: 'Catatan_Atas_Laporan_Keuangan.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait'
+                }
+            };
+            
+            html2pdf().set(opt).from(tempContainer).save().finally(() => {
+                document.body.removeChild(tempContainer);
+            });
+        }
+
+        function getPendapatanItemsList() {
+            if (pendapatanData.length === 0) {
+                return '<p class="text-gray-500 text-center py-4">Belum ada data pendapatan</p>';
+            }
+
+            // Create dropdown options for income items
+            const dropdownOptions = pendapatanData
+                .map(item => `<option value="${item.id}">${new Date(item.tanggal).toLocaleDateString('id-ID')} - ${item.uraian.substring(0, 30)}${item.uraian.length > 30 ? '...' : ''} - ${formatRupiah(item.jumlah)}</option>`)
+                .join('');
+
+            return `
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-green-800 mb-2">Pilih Data Pendapatan untuk Dikelola:</label>
+                    <select id="pendapatan-dropdown" onchange="handlePendapatanDropdownChange()" class="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white">
+                        <option value="">-- Pilih Data Pendapatan --</option>
+                        ${dropdownOptions}
+                    </select>
+                </div>
+                
+                <div id="pendapatan-item-details" class="hidden">
+                    <div class="bg-white rounded-lg p-4 border border-green-200 mb-4">
+                        <div id="pendapatan-item-info"></div>
+                        <div class="flex space-x-2 mt-4">
+                            <button onclick="editSelectedPendapatanItem()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                                </svg>
+                                Edit
+                            </button>
+                            <button onclick="deleteSelectedPendapatanItem()" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9zM4 5a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zM8 8a1 1 0 012 0v3a1 1 0 11-2 0V8zM12 8a1 1 0 012 0v3a1 1 0 11-2 0V8z" clip-rule="evenodd"/>
+                                </svg>
+                                Hapus
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getPengeluaranItemsList() {
+            if (pengeluaranData.length === 0) {
+                return '<p class="text-gray-500 text-center py-4">Belum ada data pengeluaran</p>';
+            }
+
+            // Create dropdown options for expense items
+            const dropdownOptions = pengeluaranData
+                .map(item => `<option value="${item.id}">${new Date(item.tanggal).toLocaleDateString('id-ID')} - ${item.uraian.substring(0, 30)}${item.uraian.length > 30 ? '...' : ''} - ${formatRupiah(item.jumlah)}</option>`)
+                .join('');
+
+            return `
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-red-800 mb-2">Pilih Data Pengeluaran untuk Dikelola:</label>
+                    <select id="pengeluaran-dropdown" onchange="handlePengeluaranDropdownChange()" class="w-full p-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white">
+                        <option value="">-- Pilih Data Pengeluaran --</option>
+                        ${dropdownOptions}
+                    </select>
+                </div>
+                
+                <div id="pengeluaran-item-details" class="hidden">
+                    <div class="bg-white rounded-lg p-4 border border-red-200 mb-4">
+                        <div id="pengeluaran-item-info"></div>
+                        <div class="flex space-x-2 mt-4">
+                            <button onclick="editSelectedPengeluaranItem()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                                </svg>
+                                Edit
+                            </button>
+                            <button onclick="deleteSelectedPengeluaranItem()" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9zM4 5a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zM8 8a1 1 0 012 0v3a1 1 0 11-2 0V8zM12 8a1 1 0 012 0v3a1 1 0 11-2 0V8z" clip-rule="evenodd"/>
+                                </svg>
+                                Hapus
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getCalkItemsList() {
+            const calkItems = [
+                { key: 'kas', label: 'Kas', description: 'Sisa uang tunai pada tanggal 31 desember yang tidak disimpan di Bank' },
+                { key: 'bank', label: 'Bank', description: 'Uang hasil usaha yang disimpan di Bank, saldo akhir per tgl 31 desember' },
+                { key: 'deposito', label: 'Deposito', description: '(JIKA ADA) Uang dari usaha yang didepositokan' },
+                { key: 'piutangUsaha', label: 'Piutang Usaha', description: 'Pihak lain yang berhutang dan belum dibayarkan' },
+                { key: 'persediaan', label: 'Persediaan', description: 'Sisa stock barang yang belum terjual dirupiahkan' },
+                { key: 'bebanDibayarDimuka', label: 'Beban Dibayar Dimuka', description: 'DP atau Biaya yang dikeluarkan terlebih dahulu baru digunakan' },
+                { key: 'asetTetap', label: 'Aset Tetap', description: 'Total Harga Beli Aset yang dimiliki UMKM secara keseluruhan' },
+                { key: 'penyusutan', label: 'Penyusutan', description: 'Penyusutan Aset yang dimiliki dihitung dengan metode garis lurus' },
+                { key: 'utangUsaha', label: 'Utang Usaha', description: 'Hutang pembelian barang untuk usaha' },
+                { key: 'hutangBank', label: 'Hutang Bank', description: '(JIKA ADA). Hutang / pinjaman kepada Bank untuk usaha' },
+                { key: 'hutangLainLain', label: 'Hutang Lain-Lain', description: 'Hutang/Pinjaman kepada selain Bank' },
+                { key: 'modal', label: 'Modal', description: 'Modal awal pada saat bikin UMKM' },
+                { key: 'labaDitahan', label: 'Laba Ditahan', description: 'Keuntungan yang akan diputar kembali untuk membesarkan usaha' },
+                { key: 'saldoLabaRugi', label: 'Saldo Laba / Rugi', description: 'Keuntungan / Kerugian pada akhir tahun' },
+                { key: 'bebanPajak', label: 'Beban Pajak', description: 'Pajak yang harus dibayarkan' }
+            ];
+
+            const hasData = Object.values(calkData).some(val => val > 0);
+            
+            if (!hasData) {
+                return '<p class="text-gray-500 text-center py-4">Belum ada data CaLK</p>';
+            }
+
+            // Create dropdown options for items with data
+            const dropdownOptions = calkItems.filter(item => (calkData[item.key] || 0) > 0)
+                .map(item => `<option value="${item.key}">${item.label} - ${formatRupiah(calkData[item.key])}</option>`)
+                .join('');
+
+            return `
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-orange-800 mb-2">Pilih Item CaLK untuk Dikelola:</label>
+                    <select id="calk-dropdown" onchange="handleCalkDropdownChange()" class="w-full p-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white">
+                        <option value="">-- Pilih Item CaLK --</option>
+                        ${dropdownOptions}
+                    </select>
+                </div>
+                
+                <div id="calk-item-details" class="hidden">
+                    <div class="bg-white rounded-lg p-4 border border-orange-200 mb-4">
+                        <div id="calk-item-info"></div>
+                        <div class="flex space-x-2 mt-4">
+                            <button onclick="editSelectedCalkItem()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                                </svg>
+                                Edit
+                            </button>
+                            <button onclick="deleteSelectedCalkItem()" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9zM4 5a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zM8 8a1 1 0 012 0v3a1 1 0 11-2 0V8zM12 8a1 1 0 012 0v3a1 1 0 11-2 0V8z" clip-rule="evenodd"/>
+                                </svg>
+                                Hapus
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        let selectedCalkItem = null;
+        let selectedPendapatanItem = null;
+        let selectedPengeluaranItem = null;
+
+        function handlePendapatanDropdownChange() {
+            const dropdown = document.getElementById('pendapatan-dropdown');
+            const detailsDiv = document.getElementById('pendapatan-item-details');
+            const infoDiv = document.getElementById('pendapatan-item-info');
+            
+            const selectedId = parseInt(dropdown.value);
+            
+            if (!selectedId) {
+                detailsDiv.classList.add('hidden');
+                selectedPendapatanItem = null;
+                return;
+            }
+            
+            // Find the selected item
+            const selectedItem = pendapatanData.find(item => item.id === selectedId);
+            selectedPendapatanItem = selectedItem;
+            
+            if (selectedItem) {
+                infoDiv.innerHTML = `
+                    <div class="font-medium text-gray-800 text-lg mb-2">Data Pendapatan</div>
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+                        <div><span class="font-medium">Tanggal:</span> ${new Date(selectedItem.tanggal).toLocaleDateString('id-ID')}</div>
+                        <div><span class="font-medium">Jenis:</span> ${selectedItem.jenis.join(', ')}</div>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-3"><span class="font-medium">Uraian:</span> ${selectedItem.uraian}</div>
+                    <div class="text-2xl font-bold text-green-700">${formatRupiah(selectedItem.jumlah)}</div>
+                `;
+                detailsDiv.classList.remove('hidden');
+            }
+        }
+
+        function handlePengeluaranDropdownChange() {
+            const dropdown = document.getElementById('pengeluaran-dropdown');
+            const detailsDiv = document.getElementById('pengeluaran-item-details');
+            const infoDiv = document.getElementById('pengeluaran-item-info');
+            
+            const selectedId = parseInt(dropdown.value);
+            
+            if (!selectedId) {
+                detailsDiv.classList.add('hidden');
+                selectedPengeluaranItem = null;
+                return;
+            }
+            
+            // Find the selected item
+            const selectedItem = pengeluaranData.find(item => item.id === selectedId);
+            selectedPengeluaranItem = selectedItem;
+            
+            if (selectedItem) {
+                infoDiv.innerHTML = `
+                    <div class="font-medium text-gray-800 text-lg mb-2">Data Pengeluaran</div>
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+                        <div><span class="font-medium">Tanggal:</span> ${new Date(selectedItem.tanggal).toLocaleDateString('id-ID')}</div>
+                        <div><span class="font-medium">Jenis:</span> ${selectedItem.jenis.join(', ')}</div>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-3"><span class="font-medium">Uraian:</span> ${selectedItem.uraian}</div>
+                    <div class="text-2xl font-bold text-red-700">${formatRupiah(selectedItem.jumlah)}</div>
+                `;
+                detailsDiv.classList.remove('hidden');
+            }
+        }
+
+        function handleCalkDropdownChange() {
+            const dropdown = document.getElementById('calk-dropdown');
+            const detailsDiv = document.getElementById('calk-item-details');
+            const infoDiv = document.getElementById('calk-item-info');
+            
+            const selectedKey = dropdown.value;
+            
+            if (!selectedKey) {
+                detailsDiv.classList.add('hidden');
+                selectedCalkItem = null;
+                return;
+            }
+            
+            // Find the selected item
+            const calkItems = [
+                { key: 'kas', label: 'Kas', description: 'Sisa uang tunai pada tanggal 31 desember yang tidak disimpan di Bank' },
+                { key: 'bank', label: 'Bank', description: 'Uang hasil usaha yang disimpan di Bank, saldo akhir per tgl 31 desember' },
+                { key: 'deposito', label: 'Deposito', description: '(JIKA ADA) Uang dari usaha yang didepositokan' },
+                { key: 'piutangUsaha', label: 'Piutang Usaha', description: 'Pihak lain yang berhutang dan belum dibayarkan' },
+                { key: 'persediaan', label: 'Persediaan', description: 'Sisa stock barang yang belum terjual dirupiahkan' },
+                { key: 'bebanDibayarDimuka', label: 'Beban Dibayar Dimuka', description: 'DP atau Biaya yang dikeluarkan terlebih dahulu baru digunakan' },
+                { key: 'asetTetap', label: 'Aset Tetap', description: 'Total Harga Beli Aset yang dimiliki UMKM secara keseluruhan' },
+                { key: 'penyusutan', label: 'Penyusutan', description: 'Penyusutan Aset yang dimiliki dihitung dengan metode garis lurus' },
+                { key: 'utangUsaha', label: 'Utang Usaha', description: 'Hutang pembelian barang untuk usaha' },
+                { key: 'hutangBank', label: 'Hutang Bank', description: '(JIKA ADA). Hutang / pinjaman kepada Bank untuk usaha' },
+                { key: 'hutangLainLain', label: 'Hutang Lain-Lain', description: 'Hutang/Pinjaman kepada selain Bank' },
+                { key: 'modal', label: 'Modal', description: 'Modal awal pada saat bikin UMKM' },
+                { key: 'labaDitahan', label: 'Laba Ditahan', description: 'Keuntungan yang akan diputar kembali untuk membesarkan usaha' },
+                { key: 'saldoLabaRugi', label: 'Saldo Laba / Rugi', description: 'Keuntungan / Kerugian pada akhir tahun' },
+                { key: 'bebanPajak', label: 'Beban Pajak', description: 'Pajak yang harus dibayarkan' }
+            ];
+            
+            const selectedItem = calkItems.find(item => item.key === selectedKey);
+            selectedCalkItem = selectedItem;
+            
+            if (selectedItem) {
+                const value = calkData[selectedItem.key] || 0;
+                infoDiv.innerHTML = `
+                    <div class="font-medium text-gray-800 text-lg mb-2">${selectedItem.label}</div>
+                    <div class="text-sm text-gray-600 mb-3">${selectedItem.description}</div>
+                    <div class="text-2xl font-bold text-orange-700">${formatRupiah(value)}</div>
+                `;
+                detailsDiv.classList.remove('hidden');
+            }
+        }
+
+        function editSelectedPendapatanItem() {
+            if (!selectedPendapatanItem) return;
+            
+            const newUraian = prompt('Edit Uraian:', selectedPendapatanItem.uraian);
+            if (newUraian === null) return;
+            
+            const newJumlah = prompt('Edit Jumlah:', formatRupiah(selectedPendapatanItem.jumlah));
+            if (newJumlah === null) return;
+            
+            const newTanggal = prompt('Edit Tanggal (YYYY-MM-DD):', selectedPendapatanItem.tanggal);
+            if (newTanggal === null) return;
+            
+            // Update the item
+            const itemIndex = pendapatanData.findIndex(item => item.id === selectedPendapatanItem.id);
+            if (itemIndex !== -1) {
+                pendapatanData[itemIndex].uraian = newUraian;
+                pendapatanData[itemIndex].jumlah = parseRupiah(newJumlah);
+                pendapatanData[itemIndex].tanggal = newTanggal;
+                
+                localStorage.setItem('pendapatanData', JSON.stringify(pendapatanData));
+                
+                // Refresh the kelola page
+                const contentArea = document.getElementById('content-area');
+                if (contentArea.innerHTML.includes('Kelola Data')) {
+                    contentArea.innerHTML = getKelolaHTML();
+                }
+                
+                showSuccessMessage('Data pendapatan berhasil diupdate!');
+            }
+        }
+
+        function deleteSelectedPendapatanItem() {
+            if (!selectedPendapatanItem) return;
+            
+            if (confirm('Yakin ingin menghapus data pendapatan ini?')) {
+                deletePendapatan(selectedPendapatanItem.id);
+            }
+        }
+
+        function editSelectedPengeluaranItem() {
+            if (!selectedPengeluaranItem) return;
+            
+            const newUraian = prompt('Edit Uraian:', selectedPengeluaranItem.uraian);
+            if (newUraian === null) return;
+            
+            const newJumlah = prompt('Edit Jumlah:', formatRupiah(selectedPengeluaranItem.jumlah));
+            if (newJumlah === null) return;
+            
+            const newTanggal = prompt('Edit Tanggal (YYYY-MM-DD):', selectedPengeluaranItem.tanggal);
+            if (newTanggal === null) return;
+            
+            // Update the item
+            const itemIndex = pengeluaranData.findIndex(item => item.id === selectedPengeluaranItem.id);
+            if (itemIndex !== -1) {
+                pengeluaranData[itemIndex].uraian = newUraian;
+                pengeluaranData[itemIndex].jumlah = parseRupiah(newJumlah);
+                pengeluaranData[itemIndex].tanggal = newTanggal;
+                
+                localStorage.setItem('pengeluaranData', JSON.stringify(pengeluaranData));
+                
+                // Refresh the kelola page
+                const contentArea = document.getElementById('content-area');
+                if (contentArea.innerHTML.includes('Kelola Data')) {
+                    contentArea.innerHTML = getKelolaHTML();
+                }
+                
+                showSuccessMessage('Data pengeluaran berhasil diupdate!');
+            }
+        }
+
+        function deleteSelectedPengeluaranItem() {
+            if (!selectedPengeluaranItem) return;
+            
+            if (confirm('Yakin ingin menghapus data pengeluaran ini?')) {
+                deletePengeluaran(selectedPengeluaranItem.id);
+            }
+        }
+
+        function editSelectedCalkItem() {
+            if (!selectedCalkItem) return;
+            
+            const currentValue = calkData[selectedCalkItem.key] || 0;
+            const newValue = prompt(`Edit ${selectedCalkItem.label}:`, formatRupiah(currentValue));
+            
+            if (newValue !== null) {
+                const parsedValue = parseRupiah(newValue);
+                calkData[selectedCalkItem.key] = parsedValue;
+                localStorage.setItem('calkData', JSON.stringify(calkData));
+                
+                // Refresh the kelola page
+                const contentArea = document.getElementById('content-area');
+                if (contentArea.innerHTML.includes('Kelola Data')) {
+                    contentArea.innerHTML = getKelolaHTML();
+                }
+                
+                showSuccessMessage(`${selectedCalkItem.label} berhasil diupdate!`);
+            }
+        }
+
+        function deleteSelectedCalkItem() {
+            if (!selectedCalkItem) return;
+            
+            if (confirm(`Yakin ingin menghapus data ${selectedCalkItem.label}?`)) {
+                calkData[selectedCalkItem.key] = 0;
+                localStorage.setItem('calkData', JSON.stringify(calkData));
+                
+                // Refresh the kelola page
+                const contentArea = document.getElementById('content-area');
+                if (contentArea.innerHTML.includes('Kelola Data')) {
+                    contentArea.innerHTML = getKelolaHTML();
+                }
+                
+                showSuccessMessage(`${selectedCalkItem.label} berhasil dihapus!`);
+            }
+        }
+
+        function resetPendapatanData() {
+            if (confirm('Yakin ingin menghapus semua data pendapatan? Tindakan ini tidak dapat dibatalkan!')) {
+                // Reset all income data
+                pendapatanData = [];
+                
+                // Save to localStorage
+                localStorage.setItem('pendapatanData', JSON.stringify(pendapatanData));
+                
+                // Refresh the kelola page
+                const contentArea = document.getElementById('content-area');
+                if (contentArea.innerHTML.includes('Kelola Data')) {
+                    contentArea.innerHTML = getKelolaHTML();
+                }
+                
+                // Show success message
+                showSuccessMessage('Semua data pendapatan berhasil dihapus!');
+            }
+        }
+
+        function resetPengeluaranData() {
+            if (confirm('Yakin ingin menghapus semua data pengeluaran? Tindakan ini tidak dapat dibatalkan!')) {
+                // Reset all expense data
+                pengeluaranData = [];
+                
+                // Save to localStorage
+                localStorage.setItem('pengeluaranData', JSON.stringify(pengeluaranData));
+                
+                // Refresh the kelola page
+                const contentArea = document.getElementById('content-area');
+                if (contentArea.innerHTML.includes('Kelola Data')) {
+                    contentArea.innerHTML = getKelolaHTML();
+                }
+                
+                // Show success message
+                showSuccessMessage('Semua data pengeluaran berhasil dihapus!');
+            }
+        }
+
+        function resetCalkData() {
+            if (confirm('Yakin ingin menghapus semua data CaLK? Tindakan ini tidak dapat dibatalkan!')) {
+                // Reset all CaLK data to 0
+                calkData = {
+                    kas: 0,
+                    bank: 0,
+                    deposito: 0,
+                    piutangUsaha: 0,
+                    persediaan: 0,
+                    bebanDibayarDimuka: 0,
+                    asetTetap: 0,
+                    penyusutan: 0,
+                    utangUsaha: 0,
+                    hutangBank: 0,
+                    hutangLainLain: 0,
+                    modal: 0,
+                    labaDitahan: 0,
+                    saldoLabaRugi: 0,
+                    bebanPajak: 0,
+                    pendapatanUsahaManual: 0,
+                    pendapatanLainManual: 0,
+                    pengeluaranUsahaManual: 0,
+                    pengeluaranLainManual: 0
+                };
+                
+                // Save to localStorage
+                localStorage.setItem('calkData', JSON.stringify(calkData));
+                
+                // Refresh the kelola page
+                const contentArea = document.getElementById('content-area');
+                if (contentArea.innerHTML.includes('Kelola Data')) {
+                    contentArea.innerHTML = getKelolaHTML();
+                }
+                
+                // Show success message
+                showSuccessMessage('Semua data CaLK berhasil dihapus!');
+            }
+        }
+
         function showSuccessMessage(message) {
             // Create success notification
             const notification = document.createElement('div');
@@ -916,7 +2062,22 @@
                 }, 300);
             }, 3000);
         }
-    </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9638bac6771ef8f2',t:'MTc1MzI0ODAzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
-</html>
 
+        function goHome() {
+            const contentArea = document.getElementById('content-area');
+            contentArea.innerHTML = `
+                <div class="bg-white rounded-xl shadow-lg p-8 text-center">
+                    <div class="text-6xl mb-4">📊</div>
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">Selamat Datang di LAKUM</h3>
+                    <p class="text-gray-600">Pilih menu di atas untuk mulai mengelola laporan keuangan UMKM Anda</p>
+                </div>
+            `;
+        }
+
+        // Initialize dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Any initialization code can go here
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'963cfab777793e30',t:'MTc1MzI5MjYwMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
