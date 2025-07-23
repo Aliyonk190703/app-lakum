@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAKUM - Laporan Keuangan SAK EMKM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .currency-input { text-align: right; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b-4 border-blue-600">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-blue-600 text-white p-3 rounded-lg">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">LAKUM</h1>
+                        <p class="text-sm text-gray-600">Laporan Keuangan UMKM</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-600">Sistem Pelaporan Keuangan</p>
+                    <p class="text-xs text-gray-500">Usaha Mikro Kecil dan Menengah</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-8">
+        <!-- Navigation Menu -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-6">Menu Utama</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <button onclick="showMenu('pendapatan')" class="menu-btn bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                    <div class="text-2xl mb-2">💰</div>
+                    <div class="font-medium">Pendapatan</div>
+                </button>
+                <button onclick="showMenu('pengeluaran')" class="menu-btn bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                    <div class="text-2xl mb-2">💸</div>
+                    <div class="font-medium">Pengeluaran</div>
+                </button>
+                <button onclick="showMenu('neraca')" class="menu-btn bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                    <div class="text-2xl mb-2">📊</div>
+                    <div class="font-medium">Neraca</div>
+                </button>
+                <button onclick="showMenu('labarugi')" class="menu-btn bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                    <div class="text-2xl mb-2">📈</div>
+                    <div class="font-medium">Laba Rugi</div>
+                </button>
+                <button onclick="showMenu('calk')" class="menu-btn bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                    <div class="text-2xl mb-2">📋</div>
+                    <div class="font-medium">CaLK</div>
+                </button>
+                <button onclick="showMenu('kelola')" class="menu-btn bg-gray-600 hover:bg-gray-700 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                    <div class="text-2xl mb-2">⚙️</div>
+                    <div class="font-medium">Kelola Data</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="content-area">
+            <div class="bg-white rounded-xl shadow-lg p-8 text-center">
+                <div class="text-6xl mb-4">📊</div>
+                <h3 class="text-2xl font-semibold text-gray-800 mb-2">Selamat Datang di LAKUM</h3>
+                <p class="text-gray-600">Pilih menu di atas untuk mulai mengelola laporan keuangan UMKM Anda</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data storage
+        let pendapatanData = JSON.parse(localStorage.getItem('pendapatanData')) || [];
+        let pengeluaranData = JSON.parse(localStorage.getItem('pengeluaranData')) || [];
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function parseRupiah(rupiahString) {
+            return parseInt(rupiahString.replace(/[^\d]/g, '')) || 0;
+        }
+
+        function showMenu(menu) {
+            const contentArea = document.getElementById('content-area');
+            
+            switch(menu) {
+                case 'pendapatan':
+                    contentArea.innerHTML = getPendapatanHTML();
+                    break;
+                case 'pengeluaran':
+                    contentArea.innerHTML = getPengeluaranHTML();
+                    break;
+                case 'neraca':
+                    contentArea.innerHTML = getNeracaHTML();
+                    break;
+                case 'labarugi':
+                    contentArea.innerHTML = getLabaRugiHTML();
+                    break;
+                case 'calk':
+                    contentArea.innerHTML = getCalkHTML();
+                    break;
+                case 'kelola':
+                    contentArea.innerHTML = getKelolaHTML();
+                    break;
+            }
+        }
+
+        function getPendapatanHTML() {
+            return `
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-semibold text-gray-800 flex items-center">
+                            <span class="text-green-500 mr-3">💰</span>
+                            Menu Pendapatan
+                        </h3>
+                    </div>
+                    
+                    <form onsubmit="addPendapatan(event)" class="space-y-6 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Daftar Pendapatan</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="jenisPendapatan" value="Pendapatan dari usaha" class="mr-2 text-green-600">
+                                        <span class="text-sm">Pendapatan dari usaha</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="jenisPendapatan" value="Pendapatan selain dari usaha" class="mr-2 text-green-600">
+                                        <span class="text-sm">Pendapatan selain dari usaha</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                                <input type="date" name="tanggal" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Uraian</label>
+                            <textarea name="uraian" required rows="3" placeholder="Masukkan uraian pendapatan..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah Pendapatan</label>
+                            <input type="text" name="jumlah" required placeholder="Rp 0" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent currency-input" oninput="formatCurrencyInput(this)">
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200">
+                            Tambah Pendapatan
+                        </button>
+                    </form>
+                    
+                    <div class="border-t pt-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Daftar Pendapatan</h4>
+                        <div id="pendapatan-list">
+                            ${getPendapatanList()}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getPengeluaranHTML() {
+            return `
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-semibold text-gray-800 flex items-center">
+                            <span class="text-red-500 mr-3">💸</span>
+                            Menu Pengeluaran
+                        </h3>
+                    </div>
+                    
+                    <form onsubmit="addPengeluaran(event)" class="space-y-6 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Daftar Pengeluaran</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="jenisPengeluaran" value="Pengeluaran dari usaha" class="mr-2 text-red-600">
+                                        <span class="text-sm">Pengeluaran dari usaha</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="jenisPengeluaran" value="Pengeluaran selain dari usaha" class="mr-2 text-red-600">
+                                        <span class="text-sm">Pengeluaran selain dari usaha</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                                <input type="date" name="tanggal" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Uraian</label>
+                            <textarea name="uraian" required rows="3" placeholder="Masukkan uraian pengeluaran..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah Pengeluaran</label>
+                            <input type="text" name="jumlah" required placeholder="Rp 0" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent currency-input" oninput="formatCurrencyInput(this)">
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200">
+                            Tambah Pengeluaran
+                        </button>
+                    </form>
+                    
+                    <div class="border-t pt-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Daftar Pengeluaran</h4>
+                        <div id="pengeluaran-list">
+                            ${getPengeluaranList()}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getNeracaHTML() {
+            return `
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-semibold text-gray-800 flex items-center">
+                            <span class="text-blue-500 mr-3">📊</span>
+                            Laporan Neraca
+                        </h3>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse border border-gray-300">
+                            <thead>
+                                <tr class="bg-blue-50">
+                                    <th class="border border-gray-300 p-3 text-left font-semibold">ASET</th>
+                                    <th class="border border-gray-300 p-3 text-right font-semibold">JUMLAH</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-gray-50">
+                                    <td class="border border-gray-300 p-3 font-medium">Kas dan Setara Kas</td>
+                                    <td class="border border-gray-300 p-3"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Kas</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Bank</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Deposito</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr class="bg-gray-100">
+                                    <td class="border border-gray-300 p-3 pl-8 font-medium">Jumlah Kas dan Setara Kas</td>
+                                    <td class="border border-gray-300 p-3 text-right font-medium">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3">Piutang Usaha</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3">Persediaan</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3">Beban Dibayar Dimuka</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3">Aset Tetap</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3">Penyusutan</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr class="bg-blue-100">
+                                    <td class="border border-gray-300 p-3 font-bold">JUMLAH ASET</td>
+                                    <td class="border border-gray-300 p-3 text-right font-bold">Rp 0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <table class="w-full border-collapse border border-gray-300 mt-6">
+                            <thead>
+                                <tr class="bg-red-50">
+                                    <th class="border border-gray-300 p-3 text-left font-semibold">KEWAJIBAN DAN MODAL</th>
+                                    <th class="border border-gray-300 p-3 text-right font-semibold">JUMLAH</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-gray-50">
+                                    <td class="border border-gray-300 p-3 font-medium">KEWAJIBAN</td>
+                                    <td class="border border-gray-300 p-3"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Utang Usaha</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Utang Bank</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Utang Lain-lain</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr class="bg-gray-100">
+                                    <td class="border border-gray-300 p-3 font-medium">JUMLAH KEWAJIBAN</td>
+                                    <td class="border border-gray-300 p-3 text-right font-medium">Rp 0</td>
+                                </tr>
+                                <tr class="bg-gray-50">
+                                    <td class="border border-gray-300 p-3 font-medium">MODAL</td>
+                                    <td class="border border-gray-300 p-3"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Modal</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Laba Ditahan</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Saldo Laba (Rugi)</td>
+                                    <td class="border border-gray-300 p-3 text-right">Rp 0</td>
+                                </tr>
+                                <tr class="bg-gray-100">
+                                    <td class="border border-gray-300 p-3 font-medium">JUMLAH MODAL</td>
+                                    <td class="border border-gray-300 p-3 text-right font-medium">Rp 0</td>
+                                </tr>
+                                <tr class="bg-blue-100">
+                                    <td class="border border-gray-300 p-3 font-bold">JUMLAH KEWAJIBAN DAN MODAL</td>
+                                    <td class="border border-gray-300 p-3 text-right font-bold">Rp 0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getLabaRugiHTML() {
+            const pendapatanUsaha = pendapatanData.filter(item => item.jenis.includes('Pendapatan dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const pendapatanLain = pendapatanData.filter(item => item.jenis.includes('Pendapatan selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanUsaha = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanLain = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            
+            const totalPendapatan = pendapatanUsaha + pendapatanLain;
+            const totalBeban = bebanUsaha + bebanLain;
+            const labaSebelumPajak = totalPendapatan - totalBeban;
+            const bebanPajak = 0; // Default 0, bisa diinput manual
+            const labaSetelahPajak = labaSebelumPajak - bebanPajak;
+
+            return `
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-semibold text-gray-800 flex items-center">
+                            <span class="text-purple-500 mr-3">📈</span>
+                            Laporan Laba Rugi
+                        </h3>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse border border-gray-300">
+                            <tbody>
+                                <tr class="bg-green-50">
+                                    <td class="border border-gray-300 p-3 font-semibold">PENDAPATAN</td>
+                                    <td class="border border-gray-300 p-3 text-right font-semibold">JUMLAH</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Pendapatan Usaha</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(pendapatanUsaha)}</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Pendapatan Lain-lain</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(pendapatanLain)}</td>
+                                </tr>
+                                <tr class="bg-green-100">
+                                    <td class="border border-gray-300 p-3 font-medium">Jumlah Pendapatan</td>
+                                    <td class="border border-gray-300 p-3 text-right font-medium">${formatRupiah(totalPendapatan)}</td>
+                                </tr>
+                                <tr class="bg-red-50">
+                                    <td class="border border-gray-300 p-3 font-semibold">BEBAN</td>
+                                    <td class="border border-gray-300 p-3"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Beban Usaha</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(bebanUsaha)}</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Beban Lain-lain</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(bebanLain)}</td>
+                                </tr>
+                                <tr class="bg-red-100">
+                                    <td class="border border-gray-300 p-3 font-medium">Jumlah Beban</td>
+                                    <td class="border border-gray-300 p-3 text-right font-medium">${formatRupiah(totalBeban)}</td>
+                                </tr>
+                                <tr class="bg-yellow-100">
+                                    <td class="border border-gray-300 p-3 font-semibold">Laba (Rugi) Sebelum Pajak</td>
+                                    <td class="border border-gray-300 p-3 text-right font-semibold">${formatRupiah(labaSebelumPajak)}</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 pl-8">Beban Pajak</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(bebanPajak)}</td>
+                                </tr>
+                                <tr class="bg-blue-100">
+                                    <td class="border border-gray-300 p-3 font-bold">LABA (RUGI) SETELAH PAJAK</td>
+                                    <td class="border border-gray-300 p-3 text-right font-bold">${formatRupiah(labaSetelahPajak)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getKelolaHTML() {
+            return `
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-semibold text-gray-800 flex items-center">
+                            <span class="text-gray-600 mr-3">⚙️</span>
+                            Kelola Data
+                        </h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Kelola Pendapatan -->
+                        <div class="bg-green-50 rounded-lg p-6">
+                            <h4 class="text-lg font-semibold text-green-800 mb-4 flex items-center">
+                                <span class="mr-2">💰</span>
+                                Kelola Data Pendapatan
+                            </h4>
+                            <div class="space-y-3">
+                                ${pendapatanData.length === 0 ? 
+                                    '<p class="text-gray-500 text-center py-4">Belum ada data pendapatan</p>' :
+                                    pendapatanData.map(item => `
+                                        <div class="bg-white rounded-lg p-4 border border-green-200">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex-1">
+                                                    <div class="text-sm text-gray-600">${new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
+                                                    <div class="font-medium text-gray-800">${item.uraian}</div>
+                                                    <div class="text-sm text-green-600">${item.jenis.join(', ')}</div>
+                                                    <div class="text-lg font-semibold text-green-700">${formatRupiah(item.jumlah)}</div>
+                                                </div>
+                                                <button onclick="deletePendapatan(${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm ml-3">
+                                                    Hapus
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('')
+                                }
+                            </div>
+                            ${pendapatanData.length > 0 ? `
+                                <div class="mt-4 pt-4 border-t border-green-200">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-medium text-green-800">Total Pendapatan:</span>
+                                        <span class="text-xl font-bold text-green-700">
+                                            ${formatRupiah(pendapatanData.reduce((sum, item) => sum + item.jumlah, 0))}
+                                        </span>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Kelola Pengeluaran -->
+                        <div class="bg-red-50 rounded-lg p-6">
+                            <h4 class="text-lg font-semibold text-red-800 mb-4 flex items-center">
+                                <span class="mr-2">💸</span>
+                                Kelola Data Pengeluaran
+                            </h4>
+                            <div class="space-y-3">
+                                ${pengeluaranData.length === 0 ? 
+                                    '<p class="text-gray-500 text-center py-4">Belum ada data pengeluaran</p>' :
+                                    pengeluaranData.map(item => `
+                                        <div class="bg-white rounded-lg p-4 border border-red-200">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex-1">
+                                                    <div class="text-sm text-gray-600">${new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
+                                                    <div class="font-medium text-gray-800">${item.uraian}</div>
+                                                    <div class="text-sm text-red-600">${item.jenis.join(', ')}</div>
+                                                    <div class="text-lg font-semibold text-red-700">${formatRupiah(item.jumlah)}</div>
+                                                </div>
+                                                <button onclick="deletePengeluaran(${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm ml-3">
+                                                    Hapus
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('')
+                                }
+                            </div>
+                            ${pengeluaranData.length > 0 ? `
+                                <div class="mt-4 pt-4 border-t border-red-200">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-medium text-red-800">Total Pengeluaran:</span>
+                                        <span class="text-xl font-bold text-red-700">
+                                            ${formatRupiah(pengeluaranData.reduce((sum, item) => sum + item.jumlah, 0))}
+                                        </span>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <!-- Summary -->
+                    <div class="mt-8 bg-blue-50 rounded-lg p-6">
+                        <h4 class="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+                            <span class="mr-2">📊</span>
+                            Ringkasan Keuangan
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-white rounded-lg p-4 text-center">
+                                <div class="text-sm text-gray-600">Total Pendapatan</div>
+                                <div class="text-xl font-bold text-green-600">
+                                    ${formatRupiah(pendapatanData.reduce((sum, item) => sum + item.jumlah, 0))}
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 text-center">
+                                <div class="text-sm text-gray-600">Total Pengeluaran</div>
+                                <div class="text-xl font-bold text-red-600">
+                                    ${formatRupiah(pengeluaranData.reduce((sum, item) => sum + item.jumlah, 0))}
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 text-center">
+                                <div class="text-sm text-gray-600">Saldo</div>
+                                <div class="text-xl font-bold ${(pendapatanData.reduce((sum, item) => sum + item.jumlah, 0) - pengeluaranData.reduce((sum, item) => sum + item.jumlah, 0)) >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                    ${formatRupiah(pendapatanData.reduce((sum, item) => sum + item.jumlah, 0) - pengeluaranData.reduce((sum, item) => sum + item.jumlah, 0))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getCalkHTML() {
+            return `
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-semibold text-gray-800 flex items-center">
+                            <span class="text-orange-500 mr-3">📋</span>
+                            Catatan atas Laporan Keuangan (CaLK)
+                        </h3>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse border border-gray-300 text-sm">
+                            <thead>
+                                <tr class="bg-orange-50">
+                                    <th class="border border-gray-300 p-3 text-center font-semibold w-12">NO</th>
+                                    <th class="border border-gray-300 p-3 text-left font-semibold w-48">URAIAN</th>
+                                    <th class="border border-gray-300 p-3 text-center font-semibold w-32">JUMLAH</th>
+                                    <th class="border border-gray-300 p-3 text-left font-semibold">KETERANGAN</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">1</td>
+                                    <td class="border border-gray-300 p-3">Kas</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Sisa uang tunai pada tanggal 31 desember yang tidak disimpan di Bank</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">2</td>
+                                    <td class="border border-gray-300 p-3">Bank</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Uang hasil usaha yang disimpan di Bank, saldo akhir per tgl 31 desember</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">3</td>
+                                    <td class="border border-gray-300 p-3">Deposito</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">(JIKA ADA) Uang dari usaha yang didepositokan</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">4</td>
+                                    <td class="border border-gray-300 p-3">Piutang Usaha</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Pihak lain yang berhutang dan belum dibayarkan</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">5</td>
+                                    <td class="border border-gray-300 p-3">Persediaan</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Sisa stock barang yang belum terjual dirupiahkan</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">6</td>
+                                    <td class="border border-gray-300 p-3">Beban Dibayar Dimuka</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">DP atau Biaya yang dikeluarkan terlebih dahulu baru digunakan - contoh: Sewa kantor, Sewa alat, DP Barang, Biaya Iklan dll</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">7</td>
+                                    <td class="border border-gray-300 p-3">Aset Tetap</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Total Harga Beli Aset yang dimiliki UMKM secara keseluruhan (contoh: peralatan dagang, alat elektronik untuk dagang dsb)</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">8</td>
+                                    <td class="border border-gray-300 p-3">Penyusutan</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Penyusutan Aset yang dimiliki dihitung dengan metode garis lurus</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">9</td>
+                                    <td class="border border-gray-300 p-3">Utang Usaha</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Hutang pembelian barang untuk usaha</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">10</td>
+                                    <td class="border border-gray-300 p-3">Hutang Bank</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">(JIKA ADA). Hutang / pinjaman kepada Bank untuk usaha</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">11</td>
+                                    <td class="border border-gray-300 p-3">Hutang Lain-Lain</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Hutang/Pinjaman kepada selain Bank (contoh: ambil barang di distributor tapi belum dibayar, pinjam ke tetangga dsb)</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">12</td>
+                                    <td class="border border-gray-300 p-3">Modal</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Modal awal pada saat bikin UMKM</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">13</td>
+                                    <td class="border border-gray-300 p-3">Laba Ditahan</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Keuntungan yang akan diputar kembali untuk membesarkan usaha diakumulasi dan diambil dari laba bersih tiap tahunnya</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">14</td>
+                                    <td class="border border-gray-300 p-3">Saldo Laba / Rugi</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Keuntungan / Kerugian pada akhir tahun</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">15</td>
+                                    <td class="border border-gray-300 p-3">Pendapatan dari usaha<br>Pendapatan selain dari usaha</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -<br>Rp -</td>
+                                    <td class="border border-gray-300 p-3"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">16</td>
+                                    <td class="border border-gray-300 p-3">Pengeluaran dari usaha<br>Pengeluaran selain dari usaha</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -<br>Rp -</td>
+                                    <td class="border border-gray-300 p-3"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-300 p-3 text-center">17</td>
+                                    <td class="border border-gray-300 p-3">Beban Pajak</td>
+                                    <td class="border border-gray-300 p-3 text-center">Rp -</td>
+                                    <td class="border border-gray-300 p-3">Pajak yang harus dibayarkan</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatCurrencyInput(input) {
+            let value = input.value.replace(/[^\d]/g, '');
+            if (value) {
+                input.value = 'Rp ' + parseInt(value).toLocaleString('id-ID');
+            }
+        }
+
+        function addPendapatan(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const jenisChecked = Array.from(form.querySelectorAll('input[name="jenisPendapatan"]:checked')).map(cb => cb.value);
+            
+            if (jenisChecked.length === 0) {
+                alert('Pilih minimal satu jenis pendapatan!');
+                return;
+            }
+            
+            const pendapatan = {
+                id: Date.now(),
+                jenis: jenisChecked,
+                tanggal: formData.get('tanggal'),
+                uraian: formData.get('uraian'),
+                jumlah: parseRupiah(formData.get('jumlah'))
+            };
+            
+            pendapatanData.push(pendapatan);
+            localStorage.setItem('pendapatanData', JSON.stringify(pendapatanData));
+            
+            form.reset();
+            document.getElementById('pendapatan-list').innerHTML = getPendapatanList();
+            
+            showSuccessMessage('Pendapatan berhasil ditambahkan!');
+        }
+
+        function addPengeluaran(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const jenisChecked = Array.from(form.querySelectorAll('input[name="jenisPengeluaran"]:checked')).map(cb => cb.value);
+            
+            if (jenisChecked.length === 0) {
+                alert('Pilih minimal satu jenis pengeluaran!');
+                return;
+            }
+            
+            const pengeluaran = {
+                id: Date.now(),
+                jenis: jenisChecked,
+                tanggal: formData.get('tanggal'),
+                uraian: formData.get('uraian'),
+                jumlah: parseRupiah(formData.get('jumlah'))
+            };
+            
+            pengeluaranData.push(pengeluaran);
+            localStorage.setItem('pengeluaranData', JSON.stringify(pengeluaranData));
+            
+            form.reset();
+            document.getElementById('pengeluaran-list').innerHTML = getPengeluaranList();
+            
+            showSuccessMessage('Pengeluaran berhasil ditambahkan!');
+        }
+
+        function getPendapatanList() {
+            if (pendapatanData.length === 0) {
+                return '<p class="text-gray-500 text-center py-4">Belum ada data pendapatan</p>';
+            }
+            
+            return `
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-green-50">
+                                <th class="border border-gray-300 p-3 text-left">Tanggal</th>
+                                <th class="border border-gray-300 p-3 text-left">Jenis</th>
+                                <th class="border border-gray-300 p-3 text-left">Uraian</th>
+                                <th class="border border-gray-300 p-3 text-right">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pendapatanData.map(item => `
+                                <tr>
+                                    <td class="border border-gray-300 p-3">${new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                                    <td class="border border-gray-300 p-3">${item.jenis.join(', ')}</td>
+                                    <td class="border border-gray-300 p-3">${item.uraian}</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(item.jumlah)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function getPengeluaranList() {
+            if (pengeluaranData.length === 0) {
+                return '<p class="text-gray-500 text-center py-4">Belum ada data pengeluaran</p>';
+            }
+            
+            return `
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-red-50">
+                                <th class="border border-gray-300 p-3 text-left">Tanggal</th>
+                                <th class="border border-gray-300 p-3 text-left">Jenis</th>
+                                <th class="border border-gray-300 p-3 text-left">Uraian</th>
+                                <th class="border border-gray-300 p-3 text-right">Jumlah</th>
+                                <th class="border border-gray-300 p-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pengeluaranData.map(item => `
+                                <tr>
+                                    <td class="border border-gray-300 p-3">${new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                                    <td class="border border-gray-300 p-3">${item.jenis.join(', ')}</td>
+                                    <td class="border border-gray-300 p-3">${item.uraian}</td>
+                                    <td class="border border-gray-300 p-3 text-right">${formatRupiah(item.jumlah)}</td>
+                                    <td class="border border-gray-300 p-3 text-center">
+                                        <button onclick="deletePengeluaran(${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                                            Hapus
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function deletePendapatan(id) {
+            if (confirm('Yakin ingin menghapus data pendapatan ini?')) {
+                // Find index of item to delete
+                let indexToDelete = -1;
+                for (let i = 0; i < pendapatanData.length; i++) {
+                    if (pendapatanData[i].id == id) {
+                        indexToDelete = i;
+                        break;
+                    }
+                }
+                
+                if (indexToDelete !== -1) {
+                    // Remove item from array
+                    pendapatanData.splice(indexToDelete, 1);
+                    
+                    // Save to localStorage
+                    localStorage.setItem('pendapatanData', JSON.stringify(pendapatanData));
+                    
+                    // Update the display immediately
+                    const pendapatanList = document.getElementById('pendapatan-list');
+                    if (pendapatanList) {
+                        pendapatanList.innerHTML = getPendapatanList();
+                    }
+                    
+                    // If we're on the kelola page, refresh it
+                    const contentArea = document.getElementById('content-area');
+                    if (contentArea.innerHTML.includes('Kelola Data')) {
+                        contentArea.innerHTML = getKelolaHTML();
+                    }
+                    
+                    // Show success message
+                    showSuccessMessage('Data pendapatan berhasil dihapus!');
+                } else {
+                    alert('Data tidak ditemukan!');
+                }
+            }
+        }
+
+        function deletePengeluaran(id) {
+            if (confirm('Yakin ingin menghapus data pengeluaran ini?')) {
+                // Find index of item to delete
+                let indexToDelete = -1;
+                for (let i = 0; i < pengeluaranData.length; i++) {
+                    if (pengeluaranData[i].id == id) {
+                        indexToDelete = i;
+                        break;
+                    }
+                }
+                
+                if (indexToDelete !== -1) {
+                    // Remove item from array
+                    pengeluaranData.splice(indexToDelete, 1);
+                    
+                    // Save to localStorage
+                    localStorage.setItem('pengeluaranData', JSON.stringify(pengeluaranData));
+                    
+                    // Update the display immediately
+                    const pengeluaranList = document.getElementById('pengeluaran-list');
+                    if (pengeluaranList) {
+                        pengeluaranList.innerHTML = getPengeluaranList();
+                    }
+                    
+                    // If we're on the kelola page, refresh it
+                    const contentArea = document.getElementById('content-area');
+                    if (contentArea.innerHTML.includes('Kelola Data')) {
+                        contentArea.innerHTML = getKelolaHTML();
+                    }
+                    
+                    // Show success message
+                    showSuccessMessage('Data pengeluaran berhasil dihapus!');
+                } else {
+                    alert('Data tidak ditemukan!');
+                }
+            }
+        }
+
+        function showSuccessMessage(message) {
+            // Create success notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    ${message}
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96385b9734b75fa9',t:'MTc1MzI0NDEzOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
