@@ -124,7 +124,7 @@
                 </svg>
                 Menu Utama
             </button>
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <button onclick="showMenu('pendapatan')" class="menu-btn bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
                     <div class="text-2xl mb-2">💰</div>
                     <div class="font-medium">Pendapatan</div>
@@ -133,10 +133,6 @@
                     <div class="text-2xl mb-2">💸</div>
                     <div class="font-medium">Pengeluaran</div>
                 </button>
-                <button onclick="showMenu('neraca')" class="menu-btn bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
-                    <div class="text-2xl mb-2">📊</div>
-                    <div class="font-medium">Neraca</div>
-                </button>
                 <button onclick="showMenu('labarugi')" class="menu-btn bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
                     <div class="text-2xl mb-2">📈</div>
                     <div class="font-medium">Laba Rugi</div>
@@ -144,6 +140,10 @@
                 <button onclick="showMenu('calk')" class="menu-btn bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
                     <div class="text-2xl mb-2">📋</div>
                     <div class="font-medium">CaLK</div>
+                </button>
+                <button onclick="showMenu('neraca')" class="menu-btn bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                    <div class="text-2xl mb-2">📊</div>
+                    <div class="font-medium">Neraca</div>
                 </button>
                 <button onclick="showMenu('kelola')" class="menu-btn bg-gray-600 hover:bg-gray-700 text-white p-4 rounded-lg transition-all duration-200 transform hover:scale-105">
                     <div class="text-2xl mb-2">⚙️</div>
@@ -586,7 +586,6 @@
                                     <th class="border border-gray-300 p-3 text-center font-semibold col-no">NO</th>
                                     <th class="border border-gray-300 p-3 text-left font-semibold col-uraian">URAIAN</th>
                                     <th class="border border-gray-300 p-3 text-center font-semibold col-jumlah">JUMLAH</th>
-                                    <th class="border border-gray-300 p-3 text-left font-semibold col-keterangan">KETERANGAN</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -594,67 +593,56 @@
                                     <td class="border border-gray-300 p-3 text-center font-semibold col-no">I</td>
                                     <td class="border border-gray-300 p-3 font-semibold col-uraian">PENDAPATAN</td>
                                     <td class="border border-gray-300 p-3 col-jumlah"></td>
-                                    <td class="border border-gray-300 p-3 col-keterangan"></td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">1</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Pendapatan Usaha</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(pendapatanUsaha)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Pendapatan yang diperoleh dari kegiatan usaha utama</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">2</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Pendapatan Lain-lain</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(pendapatanLain)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Pendapatan yang diperoleh dari kegiatan di luar usaha utama</td>
                                 </tr>
                                 <tr class="bg-green-100">
                                     <td class="border border-gray-300 p-3 text-center font-medium col-no"></td>
                                     <td class="border border-gray-300 p-3 font-medium col-uraian">Jumlah Pendapatan</td>
                                     <td class="border border-gray-300 p-3 text-center font-medium col-jumlah">${formatRupiah(totalPendapatan)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Total seluruh pendapatan</td>
                                 </tr>
                                 <tr class="bg-red-50">
                                     <td class="border border-gray-300 p-3 text-center font-semibold col-no">II</td>
                                     <td class="border border-gray-300 p-3 font-semibold col-uraian">BEBAN</td>
                                     <td class="border border-gray-300 p-3 col-jumlah"></td>
-                                    <td class="border border-gray-300 p-3 col-keterangan"></td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">3</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Beban Usaha</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(bebanUsaha)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Beban yang dikeluarkan untuk kegiatan usaha utama</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">4</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Beban Lain-lain</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(bebanLain)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Beban yang dikeluarkan untuk kegiatan di luar usaha utama</td>
                                 </tr>
                                 <tr class="bg-red-100">
                                     <td class="border border-gray-300 p-3 text-center font-medium col-no"></td>
                                     <td class="border border-gray-300 p-3 font-medium col-uraian">Jumlah Beban</td>
                                     <td class="border border-gray-300 p-3 text-center font-medium col-jumlah">${formatRupiah(totalBeban)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Total seluruh beban</td>
                                 </tr>
                                 <tr class="bg-yellow-100">
                                     <td class="border border-gray-300 p-3 text-center font-semibold col-no">III</td>
                                     <td class="border border-gray-300 p-3 font-semibold col-uraian">Laba (Rugi) Sebelum Pajak</td>
                                     <td class="border border-gray-300 p-3 text-center font-semibold col-jumlah">${formatRupiah(labaSebelumPajak)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Selisih antara total pendapatan dengan total beban</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">5</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Beban Pajak</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(bebanPajak)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Pajak yang harus dibayarkan atas laba yang diperoleh</td>
                                 </tr>
                                 <tr class="bg-blue-100">
                                     <td class="border border-gray-300 p-3 text-center font-bold col-no">IV</td>
                                     <td class="border border-gray-300 p-3 font-bold col-uraian">LABA (RUGI) SETELAH PAJAK</td>
                                     <td class="border border-gray-300 p-3 text-center font-bold col-jumlah">${formatRupiah(labaSetelahPajak)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Laba bersih yang diperoleh setelah dikurangi pajak</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1500,5 +1488,5 @@
             }, 3000);
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'963d6a789055fe01',t:'MTc1MzI5NzE3Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'964c317fd0d9f8cc',t:'MTc1MzQ1MjEyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
