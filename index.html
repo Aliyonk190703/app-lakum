@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LAKUM - Laporan Keuangan SAK EMKM</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -1297,159 +1297,342 @@
         }
 
         function printNeraca() {
-            const inputs = document.querySelectorAll('.no-print');
-            const printElements = document.querySelectorAll('.print-only');
+            const printWindow = window.open('', '_blank');
+            const kasSetaraKas = calkData.kas + calkData.bank + calkData.deposito;
+            const asetTetapBersih = calkData.asetTetap - calkData.penyusutan;
+            const totalAset = kasSetaraKas + calkData.piutangUsaha + calkData.persediaan + calkData.bebanDibayarDimuka + asetTetapBersih;
+            const totalKewajiban = calkData.utangUsaha + calkData.hutangBank + calkData.hutangLainLain;
+            const totalModal = calkData.modal + calkData.labaDitahan + calkData.saldoLabaRugi;
+            const totalKewajibanModal = totalKewajiban + totalModal;
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Laporan Neraca</title>
+                    <style>
+                        body { font-family: 'Courier New', monospace; font-size: 12px; margin: 20px; line-height: 1.4; }
+                        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                        .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+                        .subtitle { font-size: 14px; margin-bottom: 3px; }
+                        .date { font-size: 12px; }
+                        .section { margin: 15px 0; }
+                        .section-title { font-weight: bold; text-decoration: underline; margin-bottom: 8px; }
+                        .item { display: flex; justify-content: space-between; margin: 3px 0; }
+                        .item-indent { padding-left: 20px; }
+                        .item-total { border-top: 1px solid #000; font-weight: bold; margin-top: 5px; }
+                        .separator { border-top: 2px solid #000; margin: 10px 0; }
+                        .amount { text-align: right; min-width: 120px; }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="title">LAKUM - LAPORAN KEUANGAN UMKM</div>
+                        <div class="subtitle">NERACA</div>
+                        <div class="date">Per ${new Date().toLocaleDateString('id-ID')}</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">I. ASET</div>
+                        
+                        <div style="font-weight: bold; margin: 8px 0;">A. Kas dan Setara Kas</div>
+                        <div class="item item-indent">
+                            <span>1. Kas</span>
+                            <span class="amount">${formatRupiah(calkData.kas)}</span>
+                        </div>
+                        <div class="item item-indent">
+                            <span>2. Bank</span>
+                            <span class="amount">${formatRupiah(calkData.bank)}</span>
+                        </div>
+                        <div class="item item-indent">
+                            <span>3. Deposito</span>
+                            <span class="amount">${formatRupiah(calkData.deposito)}</span>
+                        </div>
+                        <div class="item item-total">
+                            <span>Jumlah Kas dan Setara Kas</span>
+                            <span class="amount">${formatRupiah(kasSetaraKas)}</span>
+                        </div>
+                        
+                        <div class="item">
+                            <span>4. Piutang Usaha</span>
+                            <span class="amount">${formatRupiah(calkData.piutangUsaha)}</span>
+                        </div>
+                        <div class="item">
+                            <span>5. Persediaan</span>
+                            <span class="amount">${formatRupiah(calkData.persediaan)}</span>
+                        </div>
+                        <div class="item">
+                            <span>6. Beban Dibayar Dimuka</span>
+                            <span class="amount">${formatRupiah(calkData.bebanDibayarDimuka)}</span>
+                        </div>
+                        <div class="item">
+                            <span>7. Aset Tetap</span>
+                            <span class="amount">${formatRupiah(calkData.asetTetap)}</span>
+                        </div>
+                        <div class="item">
+                            <span>8. Akumulasi Penyusutan</span>
+                            <span class="amount">(${formatRupiah(calkData.penyusutan)})</span>
+                        </div>
+                        
+                        <div class="separator"></div>
+                        <div class="item item-total" style="font-size: 14px;">
+                            <span>JUMLAH ASET</span>
+                            <span class="amount">${formatRupiah(totalAset)}</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">II. KEWAJIBAN DAN MODAL</div>
+                        
+                        <div style="font-weight: bold; margin: 8px 0;">B. KEWAJIBAN</div>
+                        <div class="item">
+                            <span>9. Utang Usaha</span>
+                            <span class="amount">${formatRupiah(calkData.utangUsaha)}</span>
+                        </div>
+                        <div class="item">
+                            <span>10. Utang Bank</span>
+                            <span class="amount">${formatRupiah(calkData.hutangBank)}</span>
+                        </div>
+                        <div class="item">
+                            <span>11. Utang Lain-lain</span>
+                            <span class="amount">${formatRupiah(calkData.hutangLainLain)}</span>
+                        </div>
+                        <div class="item item-total">
+                            <span>JUMLAH KEWAJIBAN</span>
+                            <span class="amount">${formatRupiah(totalKewajiban)}</span>
+                        </div>
+                        
+                        <div style="font-weight: bold; margin: 8px 0;">C. MODAL</div>
+                        <div class="item">
+                            <span>12. Modal</span>
+                            <span class="amount">${formatRupiah(calkData.modal)}</span>
+                        </div>
+                        <div class="item">
+                            <span>13. Laba Ditahan</span>
+                            <span class="amount">${formatRupiah(calkData.labaDitahan)}</span>
+                        </div>
+                        <div class="item">
+                            <span>14. Saldo Laba (Rugi)</span>
+                            <span class="amount">${formatRupiah(calkData.saldoLabaRugi)}</span>
+                        </div>
+                        <div class="item item-total">
+                            <span>JUMLAH MODAL</span>
+                            <span class="amount">${formatRupiah(totalModal)}</span>
+                        </div>
+                        
+                        <div class="separator"></div>
+                        <div class="item item-total" style="font-size: 14px;">
+                            <span>JUMLAH KEWAJIBAN DAN MODAL</span>
+                            <span class="amount">${formatRupiah(totalKewajibanModal)}</span>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px; font-size: 10px; border-top: 1px solid #000; padding-top: 10px;">
+                        Dicetak pada: ${new Date().toLocaleString('id-ID')}
+                    </div>
+                </body>
+                </html>
+            `);
             
-            inputs.forEach(el => el.style.display = 'none');
-            printElements.forEach(el => el.style.display = 'block');
-            
-            const element = document.getElementById('neraca-content');
-            
-            // Detect mobile device
-            const isMobile = window.innerWidth <= 768;
-            
-            if (isMobile) {
-                element.classList.add('mobile-pdf');
-            }
-            
-            const opt = {
-                margin: [0.3, 0.3, 0.3, 0.3],
-                filename: 'Laporan_Neraca.pdf',
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    letterRendering: true,
-                    dpi: 300,
-                    width: isMobile ? 800 : 1200,
-                    windowWidth: isMobile ? 800 : 1200,
-                    scrollX: 0,
-                    scrollY: 0,
-                    backgroundColor: '#ffffff'
-                },
-                jsPDF: { 
-                    unit: 'in', 
-                    format: 'a4', 
-                    orientation: 'portrait',
-                    compress: false
-                },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-            
-            html2pdf().set(opt).from(element).save().then(() => {
-                inputs.forEach(el => el.style.display = '');
-                printElements.forEach(el => el.style.display = 'none');
-                element.classList.remove('mobile-pdf');
-            });
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
         }
 
         function printLabaRugi() {
-            const inputs = document.querySelectorAll('.no-print');
-            const printElements = document.querySelectorAll('.print-only');
+            const printWindow = window.open('', '_blank');
+            const pendapatanUsahaAuto = pendapatanData.filter(item => item.jenis.includes('Pendapatan dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const pendapatanLainAuto = pendapatanData.filter(item => item.jenis.includes('Pendapatan selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanUsahaAuto = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanLainAuto = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
             
-            inputs.forEach(el => el.style.display = 'none');
-            printElements.forEach(el => el.style.display = 'block');
+            const pendapatanUsaha = calkData.pendapatanUsahaManual || pendapatanUsahaAuto;
+            const pendapatanLain = calkData.pendapatanLainManual || pendapatanLainAuto;
+            const bebanUsaha = calkData.pengeluaranUsahaManual || bebanUsahaAuto;
+            const bebanLain = calkData.pengeluaranLainManual || bebanLainAuto;
             
-            const element = document.getElementById('labarugi-content');
+            const totalPendapatan = pendapatanUsaha + pendapatanLain;
+            const totalBeban = bebanUsaha + bebanLain;
+            const labaSebelumPajak = totalPendapatan - totalBeban;
+            const bebanPajak = calkData.bebanPajak;
+            const labaSetelahPajak = labaSebelumPajak - bebanPajak;
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Laporan Laba Rugi</title>
+                    <style>
+                        body { font-family: 'Courier New', monospace; font-size: 12px; margin: 20px; line-height: 1.4; }
+                        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                        .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+                        .subtitle { font-size: 14px; margin-bottom: 3px; }
+                        .date { font-size: 12px; }
+                        .section { margin: 15px 0; }
+                        .section-title { font-weight: bold; text-decoration: underline; margin-bottom: 8px; }
+                        .item { display: flex; justify-content: space-between; margin: 3px 0; }
+                        .item-total { border-top: 1px solid #000; font-weight: bold; margin-top: 5px; }
+                        .separator { border-top: 2px solid #000; margin: 10px 0; }
+                        .amount { text-align: right; min-width: 120px; }
+                        .final-result { border: 2px solid #000; padding: 8px; margin-top: 15px; font-weight: bold; font-size: 14px; }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="title">LAKUM - LAPORAN KEUANGAN UMKM</div>
+                        <div class="subtitle">LABA RUGI</div>
+                        <div class="date">Untuk Periode yang Berakhir ${new Date().toLocaleDateString('id-ID')}</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">I. PENDAPATAN</div>
+                        <div class="item">
+                            <span>1. Pendapatan Usaha</span>
+                            <span class="amount">${formatRupiah(pendapatanUsaha)}</span>
+                        </div>
+                        <div class="item">
+                            <span>2. Pendapatan Lain-lain</span>
+                            <span class="amount">${formatRupiah(pendapatanLain)}</span>
+                        </div>
+                        <div class="item item-total">
+                            <span>Jumlah Pendapatan</span>
+                            <span class="amount">${formatRupiah(totalPendapatan)}</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">II. BEBAN</div>
+                        <div class="item">
+                            <span>3. Beban Usaha</span>
+                            <span class="amount">${formatRupiah(bebanUsaha)}</span>
+                        </div>
+                        <div class="item">
+                            <span>4. Beban Lain-lain</span>
+                            <span class="amount">${formatRupiah(bebanLain)}</span>
+                        </div>
+                        <div class="item item-total">
+                            <span>Jumlah Beban</span>
+                            <span class="amount">${formatRupiah(totalBeban)}</span>
+                        </div>
+                    </div>
+
+                    <div class="separator"></div>
+                    <div class="item item-total" style="font-size: 14px;">
+                        <span>III. Laba (Rugi) Sebelum Pajak</span>
+                        <span class="amount">${formatRupiah(labaSebelumPajak)}</span>
+                    </div>
+
+                    <div class="section">
+                        <div class="item">
+                            <span>5. Beban Pajak</span>
+                            <span class="amount">${formatRupiah(bebanPajak)}</span>
+                        </div>
+                    </div>
+
+                    <div class="final-result">
+                        <div class="item" style="margin: 0;">
+                            <span>IV. LABA (RUGI) SETELAH PAJAK</span>
+                            <span class="amount">${formatRupiah(labaSetelahPajak)}</span>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px; font-size: 10px; border-top: 1px solid #000; padding-top: 10px;">
+                        Dicetak pada: ${new Date().toLocaleString('id-ID')}
+                    </div>
+                </body>
+                </html>
+            `);
             
-            // Detect mobile device
-            const isMobile = window.innerWidth <= 768;
-            
-            if (isMobile) {
-                element.classList.add('mobile-pdf');
-            }
-            
-            const opt = {
-                margin: [0.3, 0.3, 0.3, 0.3],
-                filename: 'Laporan_Laba_Rugi.pdf',
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    letterRendering: true,
-                    dpi: 300,
-                    width: isMobile ? 800 : 1200,
-                    windowWidth: isMobile ? 800 : 1200,
-                    scrollX: 0,
-                    scrollY: 0,
-                    backgroundColor: '#ffffff'
-                },
-                jsPDF: { 
-                    unit: 'in', 
-                    format: 'a4', 
-                    orientation: 'portrait',
-                    compress: false
-                },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-            
-            html2pdf().set(opt).from(element).save().then(() => {
-                inputs.forEach(el => el.style.display = '');
-                printElements.forEach(el => el.style.display = 'none');
-                element.classList.remove('mobile-pdf');
-            });
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
         }
 
         function printCalk() {
-            const form = document.querySelector('#calk-content');
-            const inputs = form.querySelectorAll('input[name]');
+            const printWindow = window.open('', '_blank');
+            const pendapatanUsaha = pendapatanData.filter(item => item.jenis.includes('Pendapatan dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const pendapatanLain = pendapatanData.filter(item => item.jenis.includes('Pendapatan selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanUsaha = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+            const bebanLain = pengeluaranData.filter(item => item.jenis.includes('Pengeluaran selain dari usaha')).reduce((sum, item) => sum + item.jumlah, 0);
+
+            const calkItems = [
+                { no: 1, uraian: 'Kas', jumlah: calkData.kas, keterangan: 'Sisa uang tunai pada tanggal 31 desember yang tidak disimpan di Bank' },
+                { no: 2, uraian: 'Bank', jumlah: calkData.bank, keterangan: 'Uang hasil usaha yang disimpan di Bank, saldo akhir per tgl 31 desember' },
+                { no: 3, uraian: 'Deposito', jumlah: calkData.deposito, keterangan: '(JIKA ADA) Uang dari usaha yang didepositokan' },
+                { no: 4, uraian: 'Piutang Usaha', jumlah: calkData.piutangUsaha, keterangan: 'Pihak lain yang berhutang dan belum dibayarkan' },
+                { no: 5, uraian: 'Persediaan', jumlah: calkData.persediaan, keterangan: 'Sisa stock barang yang belum terjual dirupiahkan' },
+                { no: 6, uraian: 'Beban Dibayar Dimuka', jumlah: calkData.bebanDibayarDimuka, keterangan: 'DP atau Biaya yang dikeluarkan terlebih dahulu baru digunakan - contoh: Sewa kantor, Sewa alat, DP Barang, Biaya Iklan dll' },
+                { no: 7, uraian: 'Aset Tetap', jumlah: calkData.asetTetap, keterangan: 'Total Harga Beli Aset yang dimiliki UMKM secara keseluruhan (contoh: peralatan dagang, alat elektronik untuk dagang dsb)' },
+                { no: 8, uraian: 'Penyusutan', jumlah: calkData.penyusutan, keterangan: 'Penyusutan Aset yang dimiliki dihitung dengan metode garis lurus' },
+                { no: 9, uraian: 'Utang Usaha', jumlah: calkData.utangUsaha, keterangan: 'Hutang pembelian barang untuk usaha' },
+                { no: 10, uraian: 'Hutang Bank', jumlah: calkData.hutangBank, keterangan: '(JIKA ADA). Hutang / pinjaman kepada Bank untuk usaha' },
+                { no: 11, uraian: 'Hutang Lain-Lain', jumlah: calkData.hutangLainLain, keterangan: 'Hutang/Pinjaman kepada selain Bank (contoh: ambil barang di distributor tapi belum dibayar, pinjam ke tetangga dsb)' },
+                { no: 12, uraian: 'Modal', jumlah: calkData.modal, keterangan: 'Modal awal pada saat bikin UMKM' },
+                { no: 13, uraian: 'Laba Ditahan', jumlah: calkData.labaDitahan, keterangan: 'Keuntungan yang akan diputar kembali untuk membesarkan usaha diakumulasi dan diambil dari laba bersih tiap tahunnya' },
+                { no: 14, uraian: 'Saldo Laba / Rugi', jumlah: calkData.saldoLabaRugi, keterangan: 'Keuntungan / Kerugian pada akhir tahun' },
+                { no: 15, uraian: 'Pendapatan dari usaha', jumlah: calkData.pendapatanUsahaManual || pendapatanUsaha, keterangan: '' },
+                { no: 16, uraian: 'Pendapatan selain dari usaha', jumlah: calkData.pendapatanLainManual || pendapatanLain, keterangan: '' },
+                { no: 17, uraian: 'Pengeluaran dari usaha', jumlah: calkData.pengeluaranUsahaManual || bebanUsaha, keterangan: '' },
+                { no: 18, uraian: 'Pengeluaran selain dari usaha', jumlah: calkData.pengeluaranLainManual || bebanLain, keterangan: '' },
+                { no: 19, uraian: 'Beban Pajak', jumlah: calkData.bebanPajak, keterangan: 'Pajak yang harus dibayarkan' }
+            ];
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Catatan Atas Laporan Keuangan</title>
+                    <style>
+                        body { font-family: 'Courier New', monospace; font-size: 10px; margin: 15px; line-height: 1.3; }
+                        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                        .title { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+                        .subtitle { font-size: 12px; margin-bottom: 3px; }
+                        .date { font-size: 10px; }
+                        .item { margin-bottom: 12px; border-bottom: 1px dotted #666; padding-bottom: 8px; }
+                        .item-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; }
+                        .item-desc { font-size: 9px; color: #333; text-align: justify; line-height: 1.4; }
+                        .amount { text-align: right; min-width: 100px; }
+                        @media print {
+                            body { margin: 0; font-size: 9px; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="title">LAKUM - LAPORAN KEUANGAN UMKM</div>
+                        <div class="subtitle">CATATAN ATAS LAPORAN KEUANGAN (CaLK)</div>
+                        <div class="date">Per ${new Date().toLocaleDateString('id-ID')}</div>
+                    </div>
+
+                    ${calkItems.map(item => `
+                        <div class="item">
+                            <div class="item-header">
+                                <span>${item.no}. ${item.uraian}</span>
+                                <span class="amount">${formatRupiah(item.jumlah)}</span>
+                            </div>
+                            ${item.keterangan ? `<div class="item-desc">${item.keterangan}</div>` : ''}
+                        </div>
+                    `).join('')}
+
+                    <div style="text-align: center; margin-top: 30px; font-size: 8px; border-top: 1px solid #000; padding-top: 10px;">
+                        Dicetak pada: ${new Date().toLocaleString('id-ID')}
+                    </div>
+                </body>
+                </html>
+            `);
             
-            inputs.forEach(input => {
-                const fieldName = input.name;
-                const printSpan = input.parentElement.querySelector('.print-only');
-                if (printSpan) {
-                    const value = parseRupiah(input.value);
-                    printSpan.textContent = formatRupiah(value);
-                }
-            });
-            
-            const noprint = document.querySelectorAll('.no-print');
-            const printElements = document.querySelectorAll('.print-only');
-            
-            noprint.forEach(el => el.style.display = 'none');
-            printElements.forEach(el => el.style.display = 'inline');
-            
-            const element = document.getElementById('calk-content');
-            
-            // Detect mobile device
-            const isMobile = window.innerWidth <= 768;
-            
-            if (isMobile) {
-                element.classList.add('mobile-pdf');
-            }
-            
-            const opt = {
-                margin: [0.3, 0.3, 0.3, 0.3],
-                filename: 'Catatan_Atas_Laporan_Keuangan.pdf',
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    letterRendering: true,
-                    dpi: 300,
-                    width: isMobile ? 800 : 1200,
-                    windowWidth: isMobile ? 800 : 1200,
-                    scrollX: 0,
-                    scrollY: 0,
-                    backgroundColor: '#ffffff'
-                },
-                jsPDF: { 
-                    unit: 'in', 
-                    format: 'a4', 
-                    orientation: 'portrait',
-                    compress: false
-                },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-            
-            html2pdf().set(opt).from(element).save().then(() => {
-                noprint.forEach(el => el.style.display = '');
-                printElements.forEach(el => el.style.display = 'none');
-                element.classList.remove('mobile-pdf');
-            });
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
         }
 
         function getCalkItemsList() {
@@ -1591,5 +1774,5 @@
             }, 3000);
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'964ca18ec66ef906',t:'MTc1MzQ1NjcxOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'964d5ac8345a18f8',t:'MTc1MzQ2NDMwNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
