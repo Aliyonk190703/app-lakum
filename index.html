@@ -44,23 +44,18 @@
         }
         
         .pdf-table .col-no {
-            width: 5%;
+            width: 10%;
             text-align: center;
         }
         
         .pdf-table .col-uraian {
-            width: 35%;
+            width: 60%;
             text-align: left;
         }
         
         .pdf-table .col-jumlah {
-            width: 15%;
+            width: 30%;
             text-align: center;
-        }
-        
-        .pdf-table .col-keterangan {
-            width: 45%;
-            text-align: left;
         }
         
         .pdf-table .col-aset {
@@ -385,7 +380,6 @@
                                     <th class="border border-gray-300 p-3 text-center font-semibold col-no">NO</th>
                                     <th class="border border-gray-300 p-3 text-left font-semibold col-uraian">URAIAN</th>
                                     <th class="border border-gray-300 p-3 text-center font-semibold col-jumlah">JUMLAH</th>
-                                    <th class="border border-gray-300 p-3 text-left font-semibold col-keterangan">KETERANGAN</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -393,145 +387,121 @@
                                     <td class="border border-gray-300 p-3 text-center font-semibold col-no">I</td>
                                     <td class="border border-gray-300 p-3 font-semibold col-uraian">ASET</td>
                                     <td class="border border-gray-300 p-3 col-jumlah"></td>
-                                    <td class="border border-gray-300 p-3 col-keterangan"></td>
                                 </tr>
                                 <tr class="bg-gray-50">
                                     <td class="border border-gray-300 p-3 text-center font-medium col-no">A</td>
                                     <td class="border border-gray-300 p-3 font-medium col-uraian">Kas dan Setara Kas</td>
                                     <td class="border border-gray-300 p-3 col-jumlah"></td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Aset yang paling likuid</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">1</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Kas</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.kas)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Sisa uang tunai pada tanggal 31 desember yang tidak disimpan di Bank</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">2</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Bank</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.bank)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Uang hasil usaha yang disimpan di Bank, saldo akhir per tgl 31 desember</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">3</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Deposito</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.deposito)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">(JIKA ADA) Uang dari usaha yang didepositokan</td>
                                 </tr>
                                 <tr class="bg-gray-100">
                                     <td class="border border-gray-300 p-3 text-center font-medium col-no"></td>
                                     <td class="border border-gray-300 p-3 font-medium col-uraian">Jumlah Kas dan Setara Kas</td>
                                     <td class="border border-gray-300 p-3 text-center font-medium col-jumlah">${formatRupiah(kasSetaraKas)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Total kas dan setara kas</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">4</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Piutang Usaha</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.piutangUsaha)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Pihak lain yang berhutang dan belum dibayarkan</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">5</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Persediaan</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.persediaan)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Sisa stock barang yang belum terjual dirupiahkan</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">6</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Beban Dibayar Dimuka</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.bebanDibayarDimuka)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">DP atau Biaya yang dikeluarkan terlebih dahulu baru digunakan</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">7</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Aset Tetap</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.asetTetap)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Total Harga Beli Aset yang dimiliki UMKM secara keseluruhan</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">8</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Akumulasi Penyusutan</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">(${formatRupiah(calkData.penyusutan)})</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Penyusutan Aset yang dimiliki dihitung dengan metode garis lurus</td>
                                 </tr>
                                 <tr class="bg-blue-100">
                                     <td class="border border-gray-300 p-3 text-center font-bold col-no"></td>
                                     <td class="border border-gray-300 p-3 font-bold col-uraian">JUMLAH ASET</td>
                                     <td class="border border-gray-300 p-3 text-center font-bold col-jumlah">${formatRupiah(totalAset)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Total seluruh aset yang dimiliki</td>
                                 </tr>
                                 <tr class="bg-red-50">
                                     <td class="border border-gray-300 p-3 text-center font-semibold col-no">II</td>
                                     <td class="border border-gray-300 p-3 font-semibold col-uraian">KEWAJIBAN DAN MODAL</td>
                                     <td class="border border-gray-300 p-3 col-jumlah"></td>
-                                    <td class="border border-gray-300 p-3 col-keterangan"></td>
                                 </tr>
                                 <tr class="bg-gray-50">
                                     <td class="border border-gray-300 p-3 text-center font-medium col-no">B</td>
                                     <td class="border border-gray-300 p-3 font-medium col-uraian">KEWAJIBAN</td>
                                     <td class="border border-gray-300 p-3 col-jumlah"></td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Hutang yang harus dibayar</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">9</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Utang Usaha</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.utangUsaha)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Hutang pembelian barang untuk usaha</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">10</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Utang Bank</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.hutangBank)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">(JIKA ADA). Hutang / pinjaman kepada Bank untuk usaha</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">11</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Utang Lain-lain</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.hutangLainLain)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Hutang/Pinjaman kepada selain Bank</td>
                                 </tr>
                                 <tr class="bg-gray-100">
                                     <td class="border border-gray-300 p-3 text-center font-medium col-no"></td>
                                     <td class="border border-gray-300 p-3 font-medium col-uraian">JUMLAH KEWAJIBAN</td>
                                     <td class="border border-gray-300 p-3 text-center font-medium col-jumlah">${formatRupiah(totalKewajiban)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Total seluruh kewajiban</td>
                                 </tr>
                                 <tr class="bg-gray-50">
                                     <td class="border border-gray-300 p-3 text-center font-medium col-no">C</td>
                                     <td class="border border-gray-300 p-3 font-medium col-uraian">MODAL</td>
                                     <td class="border border-gray-300 p-3 col-jumlah"></td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Kekayaan bersih pemilik</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">12</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Modal</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.modal)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Modal awal pada saat bikin UMKM</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">13</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Laba Ditahan</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.labaDitahan)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Keuntungan yang akan diputar kembali untuk membesarkan usaha</td>
                                 </tr>
                                 <tr>
                                     <td class="border border-gray-300 p-3 text-center col-no">14</td>
                                     <td class="border border-gray-300 p-3 col-uraian">Saldo Laba (Rugi)</td>
                                     <td class="border border-gray-300 p-3 text-center col-jumlah">${formatRupiah(calkData.saldoLabaRugi)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Keuntungan / Kerugian pada akhir tahun</td>
                                 </tr>
                                 <tr class="bg-gray-100">
                                     <td class="border border-gray-300 p-3 text-center font-medium col-no"></td>
                                     <td class="border border-gray-300 p-3 font-medium col-uraian">JUMLAH MODAL</td>
                                     <td class="border border-gray-300 p-3 text-center font-medium col-jumlah">${formatRupiah(totalModal)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Total seluruh modal</td>
                                 </tr>
                                 <tr class="bg-blue-100">
                                     <td class="border border-gray-300 p-3 text-center font-bold col-no"></td>
                                     <td class="border border-gray-300 p-3 font-bold col-uraian">JUMLAH KEWAJIBAN DAN MODAL</td>
                                     <td class="border border-gray-300 p-3 text-center font-bold col-jumlah">${formatRupiah(totalKewajibanModal)}</td>
-                                    <td class="border border-gray-300 p-3 col-keterangan">Total kewajiban dan modal harus sama dengan total aset</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1488,5 +1458,5 @@
             }, 3000);
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'964c317fd0d9f8cc',t:'MTc1MzQ1MjEyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'964c4c878211fdfe',t:'MTc1MzQ1MzIzNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
